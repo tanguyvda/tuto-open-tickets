@@ -205,19 +205,19 @@ protected function _getConfigContainer1Extra() {
   // this array is here to link a label with the html code that we've wrote above
   $array_form = array(
     'address' => array(
-      'label' => _('Address') . $this->_required_field,
+      'label' => _('Address'),
       'html' => $address_html
     ),
     'api_path' => array(
-      'label' => _('API path') . $this->_required_field,
+      'label' => _('API path'),
       'html' => $api_path_html
     ),
     'user_token' => array(
-      'label' => _('User token') . $this->_required_field,
+      'label' => _('User token'),
       'html' => $user_token_html
     ),
     'app_token' => array(
-      'label' => _('APP token') . $this->_required_field,
+      'label' => _('APP token'),
       'html' => $app_token_html
     ),
     'https' => array(
@@ -331,3 +331,79 @@ protected function saveConfigExtra() {
   $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
 }
 ```
+
+You've made it, now, if you delete your old failed rule, create a new one, fill our fields with random data and save the form.
+It should be saved.
+
+#### Control the saved data
+What if I tell you that, you shouldn't let people save the form without having filled the mandatory fields that are:
+- address
+- API path
+- User token
+- App token
+
+you should remember that we've made an array called `$array_form`. Now that we've listed the mandatory parameters, we're going
+to edit their corresponding label by adding the `$this->_required_field` value. This just adds a small red star next to the label
+so people know that it is mandatory.
+
+```php
+// this array is here to link a label with the html code that we've wrote above
+$array_form = array(
+  'address' => array(
+    'label' => _('Address') . $this->_required_field,
+    'html' => $address_html
+  ),
+  'api_path' => array(
+    'label' => _('API path') . $this->_required_field,
+    'html' => $api_path_html
+  ),
+  'user_token' => array(
+    'label' => _('User token') . $this->_required_field,
+    'html' => $user_token_html
+  ),
+  'app_token' => array(
+    'label' => _('APP token') . $this->_required_field,
+    'html' => $app_token_html
+  ),
+  'https' => array(
+    'label' => _('https'),
+    'html' => $https_html
+  ),
+  'timeout' => array(
+    'label' => _('Timeout'),
+    'html' => $timeout_html
+  )
+);
+```
+
+But people may be blind, so we need to add an extra layer of security
+
+```php
+  /*
+  * Verify if every mandatory form field is filled with data
+  *
+  * @return void
+  * @throw Exception
+  */
+  protected function _checkConfigForm() {
+    $this->_check_error_message = '';
+    $this->_check_error_message_append = '';
+
+    $this->_checkFormValue('address', 'Please set "Address" value');
+    $this->_checkFormValue('api_path', 'Please set "API path" value');
+    $this->_checkFormValue('user_token', 'Please set "User token" value');
+    $this->_checkFormValue('app_token', 'Please set "APP token" value');
+    // you know what ? we're going to check if the timeout is an integer too
+    $this->_checkFormInteger('timeout', '"Timeout" must be an integer');
+
+    $this->_checkLists();
+
+    if ($this->_check_error_message != '') {
+      throw new Exception($this->_check_error_message);
+    }
+  }
+```
+
+We're done with this for the moment. Go try it out by removing the configuration of one of the mandatory fields and save the form
+like on the screenshot below
+![mandatory fields](images/mandatory_fields.png)

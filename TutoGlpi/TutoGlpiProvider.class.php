@@ -39,9 +39,30 @@ class TutoGlpiProvider extends AbstractProvider {
 
     }
 
+    /*
+    * Verify if every mandatory form field is filled with data
+    *
+    * @return void
+    * @throw Exception
+    */
     protected function _checkConfigForm() {
+        $this->_check_error_message = '';
+        $this->_check_error_message_append = '';
 
+        $this->_checkFormValue('address', 'Please set "Address" value');
+        $this->_checkFormValue('api_path', 'Please set "API path" value');
+        $this->_checkFormValue('user_token', 'Please set "User token" value');
+        $this->_checkFormValue('app_token', 'Please set "APP token" value');
+        // you know what ? we're going to check if the timeout is an integer too
+        $this->_checkFormInteger('timeout', '"Timeout" must be an integer');
+
+        $this->_checkLists();
+
+        if ($this->_check_error_message != '') {
+            throw new Exception($this->_check_error_message);
+        }
     }
+    
     /*
     * Initiate your html configuration and let Smarty display it in the rule form
     *
