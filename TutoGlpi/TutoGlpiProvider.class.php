@@ -19,50 +19,60 @@
  * limitations under the License.
  */
 
- class TutoGlpiProvider extends AbstractProvider {
+class TutoGlpiProvider extends AbstractProvider {
 
-   protected function _setDefaultValueExtra() {
+    /*
+    * Set default values for our rule form options
+    *
+    * @return void
+    */
+    protected function _setDefaultValueExtra() {
+        $this->default_data['address'] = '10.30.2.2';
+        $this->default_data['api_path'] = '/glpi/apirest.php';
+        $this->default_data['user_token'] = '';
+        $this->default_data['app_token'] = '';
+        $this->default_data['https'] = 0;
+        $this->default_data['timeout'] = 60;
+    }
 
-   }
+    protected function _setDefaultValueMain($body_html = 0) {
 
-   protected function _setDefaultValueMain($body_html = 0) {
+    }
 
-   }
+    protected function _checkConfigForm() {
 
-   protected function _checkConfigForm() {
+    }
 
-   }
+    protected function _getConfigContainer1Extra() {
 
-   protected function _getConfigContainer1Extra() {
+    }
 
-   }
+    protected function _getConfigContainer2Extra() {
 
-   protected function _getConfigContainer2Extra() {
+    }
 
-   }
+    protected function saveConfigExtra() {
 
-   protected function saveConfigExtra() {
+    }
 
-   }
+    protected function getGroupListOptions() {
 
-   protected function getGroupListOptions() {
+    }
 
-   }
+    protected function assignOthers($entry, &$groups_order, &$groups) {
 
-   protected function assignOthers($entry, &$groups_order, &$groups) {
+    }
 
-   }
+    public function validateFormatPopup() {
 
-   public function validateFormatPopup() {
+    }
 
-   }
+    protected function assignSubmittedValueSelectMore($select_input_id, $selected_id) {
 
-   protected function assignSubmittedValueSelectMore($select_input_id, $selected_id) {
+    }
 
-   }
+    protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extra_ticket_arguments=array()) {
 
-   protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extra_ticket_arguments=array()) {
+    }
 
-   }
-
- }
+}

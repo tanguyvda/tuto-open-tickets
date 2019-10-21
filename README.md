@@ -1,8 +1,8 @@
-# INTRODUCTION
+## INTRODUCTION
 This documentation is here to help you go through the development of an centreo open tickets provider.
 We will use GLPI as an ITSM software and Centreon 19.10
 
-# STARTING OUR PROJECT
+## STARTING OUR PROJECT
 
 - first of all, you need to register your provider.
 
@@ -57,7 +57,7 @@ This ID is just used by centreon open ticket internally and won't be used in our
 
 `touch /usr/share/centreon/www/modules/centreon-open-tickets/providers/TutoGlpi/TutoGlpiProvider.class.php`
 
-# CREATE YOUR CODE STRUCTURE
+## CREATE YOUR CODE STRUCTURE
 
 - open the TutoGlpiProvider.class.php file and start improvising
 
@@ -135,3 +135,98 @@ This ID is just used by centreon open ticket internally and won't be used in our
 
 At this step, you should have the following result in the Configuration -> Notifications -> Rules menu
 ![rule](images/code_structure.png)
+
+*note that at this point, you shouldn't have any PHP Notice nor any Error in your logfile
+(/var/opt/rh/rh-php72/log/php-fpm/centreon-error.log)*
+
+### PROVIDER RULE'S FORM
+In this chapter, step by step, we're going to enhance the form that we've initiated.
+
+#### Default options
+First of all, we need to let people fill the default options to reach the Glpi REST API.
+What we need is:
+- an address for the Glpi server
+- a path for its REST API
+- a user token
+- an app token
+- should we use HTTPS ?
+- a connection timeout
+
+So lets get started and hope for the best.
+
+```php
+/*
+* Set default values for our rule form options
+* @return void
+*/
+protected function _setDefaultValueExtra() {
+  $this->default_data['address'] = '10.30.2.2';
+  $this->default_data['api_path'] = '/glpi/apirest.php';
+  $this->default_data['user_token'] = '';
+  $this->default_data['app_token'] = '';
+  $this->default_data['https'] = 0;
+  $this->default_data['timeout'] = 60;
+}
+```
+
+By now, this change has done nothing, because Centreon is using Smarty as a template engine. We need to configure
+that in order to have our form displayed on the web interface.
+
+#### Displaying our default options
+In order to get a better understanding of what we're doing, we are going to quickly initiate our template engine Smarty
+
+```php
+/*
+* Initiate your html configuration and let Smarty display it in the rule form
+*
+* @return void
+*/
+protected function _getConfigContainer1Extra() {
+  // initiate smarty and a few variables.
+  $tpl = new Smarty();
+  $tpl = initSmartyTplForPopup($this->_centreon_open_ticket_path, $tpl, 'providers/TutoGlpi/template',
+    $this->_centreon_path);
+  $tpl->assign('_centreon_open_ticket_path', $this->_centreon_open_ticket_path);
+  $tpl->assign('img_brick', './modules/centreon-open-tickets/images/brick.png');
+
+  /*
+  * we create the html that is going to be displayed
+  */
+  $address_html = '<input size="50" name="address" type="text" value="' . $this->_getFormValue('address') .'" />';
+  $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
+  $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
+  $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
+  // for those who aren't familiar with ternary conditions, this means that if in the form, the value of https is equal to yes, then the input
+  // will have the checked attribute, else, it won't, resulting in a ticked or unticked checkbox
+  $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
+  $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
+
+  $array_form = array(
+    'address' => array(
+      'label' => _('Address') . $this->_required_field,
+      'html' => $address_html
+    ),
+    'api_path' => array(
+      'label' => _('API path') . $this->_required_field,
+      'html' => $api_path_html
+    ),
+    'user_token' => array(
+      'label' => _('User token') . $this->_required_field,
+      'html' => $user_token_html
+    ),
+    'app_token' => array(
+      'label' => _('APP token') . $this->_required_field,
+      'html' => $app_token_html
+    ),
+    'https' => array(
+      'label' => _('https'),
+      'html' => $https_html
+    ),
+    'timeout' => array(
+      'label' => _('Timeout'),
+      'html' => $timeout_html
+    )
+  )
+
+}
+```
