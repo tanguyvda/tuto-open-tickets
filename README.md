@@ -189,7 +189,7 @@ protected function _getConfigContainer1Extra() {
   $tpl->assign('_centreon_open_ticket_path', $this->_centreon_open_tickets_path);
   $tpl->assign('img_brick', './modules/centreon-open-tickets/images/brick.png');
   // Don't be afraid when you see _('Tuto Glpi'), that is just a short syntax for gettext. It is used to translate strings.
-  $tpl->assign('header', array('TutoGlpi' => _("Tuto Glpi")));
+  $tpl->assign('header', array('TutoGlpi' => _("Tuto Glpi Configuration Part")));
 
   /*
   * we create the html that is going to be displayed
@@ -198,7 +198,6 @@ protected function _getConfigContainer1Extra() {
   $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
   $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
   $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
-  // for those who aren't familiar with ternary conditions, this means that if in the form, the value of https is equal to yes, then the input
   // will have the checked attribute, else, it won't, resulting in a ticked or unticked checkbox
   $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
   $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
@@ -228,19 +227,8 @@ protected function _getConfigContainer1Extra() {
     'timeout' => array(
       'label' => _('Timeout'),
       'html' => $timeout_html
-    ),
-    // 'mappingticket' => array(
-    //   'label' => _('Mapping ticket arguments')
-    // )
+    )
   );
-
-  // $mappingTicketValue_html = '<input id="mappingTicketValue_html_#index#" name="mappingTicketValue[#index#]" size="20" type="text" />';
-  // $array_form['mappingTicket'] = array(
-  //   array(
-  //     'label' => _('Value'),
-  //     'html' => $mappingTicketValue_html
-  //   )
-  // )
 
   $tpl->assign('form', $array_form);
   $this->_config['container1_html'] .= $tpl->fetch('conf_container1extra.ihtml');
