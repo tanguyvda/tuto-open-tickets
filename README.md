@@ -106,7 +106,7 @@ This ID is just used by centreon open ticket internally and won't be used in our
 
    }
 
-   protected function _saveConfigExtra() {
+   protected function saveConfigExtra() {
 
    }
 
@@ -304,3 +304,30 @@ write the following html code in your template file
 When done, you should have the following result and still no errors (or notices) in your log file
 
 ![web ui with glpi server info](images/add_glpi_server_params.png)
+
+#### Saving our first rule
+
+Now that we have a somewhat cool looking form, fill it with some random information like on the screenshot below
+
+![fake configuration](images/fake_configuration.png)
+
+When done, just click the save button. You should be redirected to the rule menu and your rule should appear.
+Click on it to edit its configuration.
+If all went according to the plan, you've lost all your configuration (there's an easy broker configuration form joke to do there)
+The reason is that, we've created the form, but never configured the save function. So here we go.
+
+```php
+/*
+* Saves the rule form in the database
+*
+* @return void
+*/
+protected function saveConfigExtra() {
+  $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
+  $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
+  $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
+  $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
+  $this->_save_config['simple']['https'] = $this->_submitted_config['https'];
+  $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
+}
+```

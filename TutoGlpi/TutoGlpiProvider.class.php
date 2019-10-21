@@ -64,7 +64,6 @@ class TutoGlpiProvider extends AbstractProvider {
         $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
         $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
         $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
-        // for those who aren't familiar with ternary conditions, this means that if in the form, the value of https is equal to yes, then the input
         // will have the checked attribute, else, it won't, resulting in a ticked or unticked checkbox
         $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
         $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
@@ -100,14 +99,6 @@ class TutoGlpiProvider extends AbstractProvider {
             )
         );
 
-        // $mappingTicketValue_html = '<input id="mappingTicketValue_html_#index#" name="mappingTicketValue[#index#]" size="20" type="text" />';
-        // $array_form['mappingTicket'] = array(
-        //   array(
-        //     'label' => _('Value'),
-        //     'html' => $mappingTicketValue_html
-        //   )
-        // )
-
         $tpl->assign('form', $array_form);
         $this->_config['container1_html'] .= $tpl->fetch('conf_container1extra.ihtml');
     }
@@ -116,8 +107,18 @@ class TutoGlpiProvider extends AbstractProvider {
 
     }
 
+    /*
+    * Saves the rule form in the database
+    *
+    * @return void
+    */
     protected function saveConfigExtra() {
-
+        $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
+        $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
+        $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
+        $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
+        $this->_save_config['simple']['https'] = $this->_submitted_config['https'];
+        $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
     }
 
     protected function getGroupListOptions() {
