@@ -314,4 +314,5 @@ write the following html code in your template file
 ```
 
 When done, you should have the following result and still no errors (or notices) in your log file
+
 ![web ui with glpi server info](images/add_glpi_server_params.png)
