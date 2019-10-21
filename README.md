@@ -8,7 +8,7 @@ We will use GLPI as an ITSM software and Centreon 19.10
 
 `cat /usr/share/centreon/www/modules/centreon-open-tickets/providers/register.php`
 
-```
+```php
 <?php
 /*
  * Copyright 2015-2019 Centreon (http://www.centreon.com/)
@@ -61,7 +61,7 @@ This ID is just used by centreon open ticket internally and won't be used in our
 - open the TutoGlpiProvider.class.php file and start improvising
 
 `vim /usr/share/centreon/www/modules/centreon-open-tickets/providers/TutoGlpi/TutoGlpiProvider.class.php`
-```
+```php
 <?php
 /*
  * Copyright 2016 Centreon (http://www.centreon.com/)
