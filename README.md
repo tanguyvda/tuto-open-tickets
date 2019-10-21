@@ -54,6 +54,7 @@ This ID is just used by centreon open ticket internally and won't be used in our
 - then you need to create the appropriate directory for your provider and your main provider code file.
 
 `mkdir /usr/share/centreon/www/modules/centreon-open-tickets/providers/TutoGlpi`
+
 `touch /usr/share/centreon/www/modules/centreon-open-tickets/providers/TutoGlpi/TutoGlpiProvider.class.php`
 
 # CREATE YOUR CODE STRUCTURE
@@ -64,7 +65,7 @@ This ID is just used by centreon open ticket internally and won't be used in our
 ```php
 <?php
 /*
- * Copyright 2016 Centreon (http://www.centreon.com/)
+ * Copyright 2019 Centreon (http://www.centreon.com/)
  *
  * Centreon is a full-fledged industry-strength solution that meets
  * the needs in IT infrastructure and application monitoring for
@@ -89,7 +90,7 @@ This ID is just used by centreon open ticket internally and won't be used in our
 
    }
 
-   protected function _setDefaultValueMain() {
+   protected function _setDefaultValueMain($body_html = 0) {
 
    }
 
@@ -102,6 +103,10 @@ This ID is just used by centreon open ticket internally and won't be used in our
    }
 
    protected function _getConfigContainer2Extra() {
+
+   }
+
+   protected function _saveConfigExtra() {
 
    }
 
@@ -127,3 +132,6 @@ This ID is just used by centreon open ticket internally and won't be used in our
 
  }
 ```
+
+At this step, you should have the following result in the Configuration -> Notifications -> Rules menu
+![rule](images/code_structure.png)
