@@ -1,0 +1,53 @@
+<tr class="list_lvl_1">
+  <td class="ListColLvl1_name" colspan="2">
+    <h4>{$header.TutoGlpi}</h4>
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.address.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.address.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.api_path.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.api_path.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.user_token.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.user_token.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.app_token.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.app_token.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.https.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.https.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.timeout.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.timeout.html}
+  </td>
+</tr>

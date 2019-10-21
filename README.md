@@ -184,10 +184,12 @@ In order to get a better understanding of what we're doing, we are going to quic
 protected function _getConfigContainer1Extra() {
   // initiate smarty and a few variables.
   $tpl = new Smarty();
-  $tpl = initSmartyTplForPopup($this->_centreon_open_ticket_path, $tpl, 'providers/TutoGlpi/template',
+  $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/TutoGlpi/templates',
     $this->_centreon_path);
-  $tpl->assign('_centreon_open_ticket_path', $this->_centreon_open_ticket_path);
+  $tpl->assign('_centreon_open_ticket_path', $this->_centreon_open_tickets_path);
   $tpl->assign('img_brick', './modules/centreon-open-tickets/images/brick.png');
+  // Don't be afraid when you see _('Tuto Glpi'), that is just a short syntax for gettext. It is used to translate strings.
+  $tpl->assign('header', array('TutoGlpi' => _("Tuto Glpi")));
 
   /*
   * we create the html that is going to be displayed
@@ -201,6 +203,7 @@ protected function _getConfigContainer1Extra() {
   $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
   $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
 
+  // this array is here to link a label with the html code that we've wrote above
   $array_form = array(
     'address' => array(
       'label' => _('Address') . $this->_required_field,
@@ -225,8 +228,84 @@ protected function _getConfigContainer1Extra() {
     'timeout' => array(
       'label' => _('Timeout'),
       'html' => $timeout_html
-    )
-  )
+    ),
+    // 'mappingticket' => array(
+    //   'label' => _('Mapping ticket arguments')
+    // )
+  );
 
+  // $mappingTicketValue_html = '<input id="mappingTicketValue_html_#index#" name="mappingTicketValue[#index#]" size="20" type="text" />';
+  // $array_form['mappingTicket'] = array(
+  //   array(
+  //     'label' => _('Value'),
+  //     'html' => $mappingTicketValue_html
+  //   )
+  // )
+
+  $tpl->assign('form', $array_form);
+  $this->_config['container1_html'] .= $tpl->fetch('conf_container1extra.ihtml');
 }
+```
+
+Now that everything seems to be set up, we need to create our template file, the so called conf_container1extra.ihtml
+- Create a template directory
+`mkdir /usr/share/centreon/www/modules/centreon-open-tickets/providers/templates`
+- Create your template file
+`touch /usr/share/centreon/www/modules/centreon-open-tickets/providers/templates/conf_container1extra.ihtml`
+
+write the following html code in your template file
+```html
+<tr class="list_lvl_1">
+  <td class="ListColLvl1_name" colspan="2">
+    <h4>{$header.TutoGlpi}</h4>
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.address.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.address.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.api_path.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.api_path.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.user_token.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.user_token.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.app_token.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.app_token.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.https.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.https.html}
+  </td>
+</tr>
+<tr class="list_one">
+  <td class="FormRowField">
+    {$form.timeout.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.timeout.html}
+  </td>
+</tr>
 ```
