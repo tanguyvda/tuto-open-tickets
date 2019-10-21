@@ -249,8 +249,11 @@ protected function _getConfigContainer1Extra() {
 
 Now that everything seems to be set up, we need to create our template file, the so called conf_container1extra.ihtml
 - Create a template directory
+
 `mkdir /usr/share/centreon/www/modules/centreon-open-tickets/providers/templates`
+
 - Create your template file
+
 `touch /usr/share/centreon/www/modules/centreon-open-tickets/providers/templates/conf_container1extra.ihtml`
 
 write the following html code in your template file
@@ -309,3 +312,6 @@ write the following html code in your template file
   </td>
 </tr>
 ```
+
+When done, you should have the following result and still no errors (or notices) in your log file
+![web ui with glpi server info](images/add_glpi_server_params.png)
