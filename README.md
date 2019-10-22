@@ -45,10 +45,10 @@ $register_providers['ServiceNow'] = 9;
 $register_providers['Jira'] = 10;
 
 // our custom provider
-$register_providers['TutoGlpi'] = 2712;
+$register_providers['TutoGlpi'] = 27121991;
 ```
 
-This step is easy, you register your provider, its name is going to be **TutoGlpi**. Its id is going to be **2712**.
+This step is easy, you register your provider, its name is going to be **TutoGlpi**. Its id is going to be **27121991**.
 This ID is just used by centreon open ticket internally and won't be used in our provider itself.
 
 - then you need to create the appropriate directory for your provider and your main provider code file.
@@ -144,7 +144,7 @@ In this chapter, step by step, we're going to enhance the form that we've initia
 
 #### Default options
 First of all, we need to let people fill the default options to reach the Glpi REST API.
-What we need is:
+What we need are:
 - an address for the Glpi server
 - a path for its REST API
 - a user token
@@ -152,7 +152,7 @@ What we need is:
 - should we use HTTPS ?
 - a connection timeout
 
-So lets get started and hope for the best.
+So let's get started and hope for the best.
 
 ```php
 /*
@@ -198,6 +198,7 @@ protected function _getConfigContainer1Extra() {
   $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
   $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
   $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
+  // for those who aren't familiar with ternary conditions, this means that if in the form, the value of https is equal to yes, then the input
   // will have the checked attribute, else, it won't, resulting in a ticked or unticked checkbox
   $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
   $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
