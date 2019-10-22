@@ -1,5 +1,5 @@
 ## INTRODUCTION
-This documentation is here to help you go through the development of an centreo open tickets provider.
+This documentation is here to help you go through the development of a Centreon open tickets provider.
 We will use GLPI as an ITSM software and Centreon 19.10
 
 ## STARTING OUR PROJECT

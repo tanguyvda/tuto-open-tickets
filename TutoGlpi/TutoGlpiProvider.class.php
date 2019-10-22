@@ -62,7 +62,7 @@ class TutoGlpiProvider extends AbstractProvider {
             throw new Exception($this->_check_error_message);
         }
     }
-    
+
     /*
     * Initiate your html configuration and let Smarty display it in the rule form
     *
@@ -85,6 +85,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
         $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
         $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
+        // for those who aren't familiar with ternary conditions, this means that if in the form, the value of https is equal to yes, then the input
         // will have the checked attribute, else, it won't, resulting in a ticked or unticked checkbox
         $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
         $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
