@@ -184,7 +184,7 @@ protected function _getConfigContainer1Extra() {
   $tpl = new Smarty();
   $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/TutoGlpi/templates',
     $this->_centreon_path);
-  $tpl->assign('_centreon_open_ticket_path', $this->_centreon_open_tickets_path);
+  $tpl->assign('centreon_open_tickets_path', $this->_centreon_open_tickets_path);
   $tpl->assign('img_brick', './modules/centreon-open-tickets/images/brick.png');
   // Don't be afraid when you see _('Tuto Glpi'), that is just a short syntax for gettext. It is used to translate strings.
   $tpl->assign('header', array('TutoGlpi' => _("Tuto Glpi Configuration Part")));
@@ -258,7 +258,7 @@ write the following html code in your template file
     {$form.address.html}
   </td>
 </tr>
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
     {$form.api_path.label}
   </td>
@@ -274,7 +274,7 @@ write the following html code in your template file
     {$form.user_token.html}
   </td>
 </tr>
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
     {$form.app_token.label}
   </td>
@@ -290,7 +290,7 @@ write the following html code in your template file
     {$form.https.html}
   </td>
 </tr>
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
     {$form.timeout.label}
   </td>
@@ -466,4 +466,147 @@ Array
     [4] => title
 )
 ```
-Now that you've seen the debug, we can remove the fopen, fwrite and fclose statement that we've added. 
+Now that you've seen the debug, we can remove the fopen, fwrite and fclose statement that we've added.
+
+Like we did at the beginning, we need to let people configure those parameters
+
+```php
+/*
+* Set default values for our rule form options
+* @return void
+*/
+protected function _setDefaultValueExtra() {
+  $this->default_data['address'] = '10.30.2.2';
+  $this->default_data['api_path'] = '/glpi/apirest.php';
+  $this->default_data['user_token'] = '';
+  $this->default_data['app_token'] = '';
+  $this->default_data['https'] = 0;
+  $this->default_data['timeout'] = 60;
+
+  $this->default_data['clones']['mappingTicket'] = array(
+    array(
+      'Arg' =>  self::ARG_TITLE,
+      'Value' => 'Issue {incluse file="file:$_centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
+    ),
+    array(
+      'Arg' => self::ARG_CONTENT,
+      'Value' => '{$body}'
+    ),
+    array(
+      'Arg' => self::ARG_ENTITY,
+      'Value' => '{$select.glpi_entity.id}'
+    ),
+    array(
+      'Arg' => self::ARG_URGENCY,
+      'Value' => '{$select.urgency.value}'
+    )
+  );
+}
+```
+
+We are going to face the same issue than before, nothing is going to be displayed on our webinterface if
+we don't link it to our template one way or another.
+
+```php
+/*
+* Initiate your html configuration and let Smarty display it in the rule form
+*
+* @return void
+*/
+protected function _getConfigContainer1Extra() {
+
+  // ... code ... //
+
+  $array_form = array(
+    'address' => array(
+      'label' => _('Address'),
+      'html' => $address_html
+    ),
+    'api_path' => array(
+      'label' => _('API path'),
+      'html' => $api_path_html
+    ),
+    'user_token' => array(
+      'label' => _('User token'),
+      'html' => $user_token_html
+    ),
+    'app_token' => array(
+      'label' => _('APP token'),
+      'html' => $app_token_html
+    ),
+    'https' => array(
+      'label' => _('https'),
+      'html' => $https_html
+    ),
+    'timeout' => array(
+      'label' => _('Timeout'),
+      'html' => $timeout_html
+    ),
+    //we add a key to our array
+    'mappingticket' => array(
+      'label' => _('Mapping ticket arguments')
+    )
+  );
+
+  // html
+  $mappingTicketValue_html = '<input id="mappingTicketValue_#index#" name="mappingTicketValue[#index#] size="20" type="text"';
+
+  // html code for a dropdown list where we will be able to select something from the following list
+  $mappingTicketArg_html = '<select id="mappingTicketArg_#index#" name="mappingTicketArg[#index#]" type="select-one">' .
+    '<option value="' . self::ARG_TITLE . '">' . _("Title") . '</option>' .
+    '<option value="' . self::ARG_CONTENT . '">' . _("Content") . '</option>' .
+    '<option value="' . self::ARG_ENTITY . '">' . _("Entity") . '</option>' .
+    '<option value="' . self::ARG_URGENCY . '">' . _("Urgency") . '</option>' .  
+  '</select>';
+
+  // we asociate the label with the html code but for the arguments that we've been working on lately
+  $array_form['mappingTicket'] = array(
+    array(
+      'label' => _('Argument'),
+      'html' => $mappingTicketArg_html
+    ),
+    array(
+      'label' => _('Value'),
+      'html' => $mappingTicketValue_html
+    )
+  );
+
+  $tpl->assign('form', $array_form);
+  $this->_config['container1_html'] .= $tpl->fetch('conf_container1extra.ihtml');
+  $this->_config['clones']['mappingTicket'] = $this->_getCloneValue('mappingTicket');
+}
+```
+
+Now that our html is ready, we need to adapt our template file `conf_container1extra.ihtml`
+add the end of this file add:
+
+```html
+
+<!-- ... code ... -->
+
+<tr class="list_one">
+    <td class="FormRowField">
+        {$form.mappingticket.label}
+    </td>
+    <td class="FormRowValue">
+        {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/clone.ihtml" cloneId="mappingTicket" cloneSet=$form.mappingTicket}
+    </td>
+</tr>
+```
+
+We're good now, let's take a look at our work. Go back to your rule form and check what happened.
+
+![ticket args](images/ticket_args1.png)
+
+That's a bit disapointing, all that code, just to get a text, a small button and a grammar mistake (if you look closely, you'll be able to *find* it)
+
+Well in fact, if we click on **Add a new entry** we can see a part of our work.
+By clicking on it, you should be able to understand the naming of what we worked on:
+
+`$this->default_data['clones']['mappingTicket']`
+
+we are cloning elements and by doing it, we want to map a ticket argument (content, title, entity or urgency) with a value.
+
+To have a better overview of that, just go back to the rule menu, create a new rule, select TutoGlpi as a rule, and you'll each ticket arguments linked (mapped) with a value.
+
+![ticket args](images/ticket_args2.png)

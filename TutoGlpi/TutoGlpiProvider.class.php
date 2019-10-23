@@ -48,6 +48,25 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->default_data['app_token'] = '';
         $this->default_data['https'] = 0;
         $this->default_data['timeout'] = 60;
+
+        $this->default_data['clones']['mappingTicket'] = array(
+          array(
+            'Arg' =>  self::ARG_TITLE,
+            'Value' => 'Issue {incluse file="file:$_centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
+          ),
+          array(
+            'Arg' => self::ARG_CONTENT,
+            'Value' => '{$body}'
+          ),
+          array(
+            'Arg' => self::ARG_ENTITY,
+            'Value' => '{$select.glpi_entity.id}'
+          ),
+          array(
+            'Arg' => self::ARG_URGENCY,
+            'Value' => '{$select.urgency.value}'
+          )
+        );
     }
 
     protected function _setDefaultValueMain($body_html = 0) {
@@ -88,7 +107,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $tpl = new Smarty();
         $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/TutoGlpi/templates',
         $this->_centreon_path);
-        $tpl->assign('_centreon_open_ticket_path', $this->_centreon_open_tickets_path);
+        $tpl->assign('centreon_open_tickets_path', $this->_centreon_open_tickets_path);
         $tpl->assign('img_brick', './modules/centreon-open-tickets/images/brick.png');
         // Don't be afraid when you see _('Tuto Glpi'), that is just a short syntax for gettext. It is used to translate strings.
         $tpl->assign('header', array('TutoGlpi' => _("Tuto Glpi")));
@@ -131,13 +150,38 @@ class TutoGlpiProvider extends AbstractProvider {
                 'label' => _('Timeout'),
                 'html' => $timeout_html
             ),
+            //we add a key to our array
             'mappingticket' => array(
                 'label' => _('Mapping ticket arguments')
             )
         );
 
+        // html
+        $mappingTicketValue_html = '<input id="mappingTicketValue_#index#" name="mappingTicketValue[#index#] size="20" type="text"';
+
+        // html code for a dropdown list where we will be able to select something from the following list
+        $mappingTicketArg_html = '<select id="mappingTicketArg_#index#" name="mappingTicketArg[#index#]" type="select-one">' .
+          '<option value="' . self::ARG_TITLE . '">' . _("Title") . '</option>' .
+          '<option value="' . self::ARG_CONTENT . '">' . _("Content") . '</option>' .
+          '<option value="' . self::ARG_ENTITY . '">' . _("Entity") . '</option>' .
+          '<option value="' . self::ARG_URGENCY . '">' . _("Urgency") . '</option>' .
+        '</select>';
+
+        // we asociate the label with the html code but for the arguments that we've been working on lately
+        $array_form['mappingTicket'] = array(
+          array(
+            'label' => _('Argument'),
+            'html' => $mappingTicketArg_html
+          ),
+          array(
+            'label' => _('Value'),
+            'html' => $mappingTicketValue_html
+          )
+        );
+
         $tpl->assign('form', $array_form);
         $this->_config['container1_html'] .= $tpl->fetch('conf_container1extra.ihtml');
+        $this->_config['clones']['mappingTicket'] = $this->_getCloneValue('mappingTicket');
     }
 
     protected function _getConfigContainer2Extra() {
