@@ -3,14 +3,14 @@
 2. [STARTING OUR PROJECT](#start-our-project)
 3. [CREATE YOUR CODE STRUCTURE](#create-your-code-structure)
 4. [FORM BASCICS](#form-basics)
-  1. [Default options](#default-options)
-  2. [Display our default options](#display-our-default-options)
-  3. [Save our first rule](#save-our-first-rule)
-  4. [Check the saved data](#check-the-saved-data)
+    - [Default options](#default-options)
+    - [Display our default options](#display-our-default-options)
+    - [Save our first rule](#save-our-first-rule)
+    - [Check the saved data](#check-the-saved-data)
 5. [TICKET ARGUMENTS](#ticket-arguments)
-  1. [Arguments initialization](#arguments-initialization)
-  2. [Default ticket arguments options](#default-ticket-arguments-options)
-  3. [Display default ticket arguments](#display-default-ticket-arguments)
+    - [Arguments initialization](#arguments-initialization)
+    - [Default ticket arguments options](#default-ticket-arguments-options)
+    - [Display default ticket arguments](#display-default-ticket-arguments)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
