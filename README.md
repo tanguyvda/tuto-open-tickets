@@ -1,8 +1,22 @@
-## INTRODUCTION
+## Table of contents
+1. [INTRODUCTION](##introduction)
+2. [STARTING OUR PROJECT](##start-our-project)
+3. [CREATE YOUR CODE STRUCTURE](##create-your-code-structure)
+4. [FORM BASCICS](##form-basics)
+  - [Default options](###default-options)
+  - [Display our default options](###display-our-default-options)
+  - [Save our first rule](###save-our-first-rule)
+  - [Check the saved data](###check-the-saved-data)
+5. [TICKET ARGUMENTS](##ticket-arguments)
+  - [Arguments initialization](###arguments-initialization)
+  - [Default ticket arguments options](###default-ticket-arguments-options)
+  - [Display default ticket arguments](###display-default-ticket-arguments)
+
+## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
 We will use GLPI as an ITSM software and Centreon 19.10
 
-## STARTING OUR PROJECT
+## STARTING OUR PROJECT <a name="start-our-project"></a>
 
 - first of all, you need to register your provider.
 
@@ -56,7 +70,7 @@ This ID is just used by centreon open ticket internally and won't be used in our
 
 `touch /usr/share/centreon/www/modules/centreon-open-tickets/providers/TutoGlpi/TutoGlpiProvider.class.php`
 
-## CREATE YOUR CODE STRUCTURE
+## CREATE YOUR CODE STRUCTURE <a name="create-your-code-structure"></a>
 
 - open the TutoGlpiProvider.class.php file and start improvising
 
@@ -137,10 +151,10 @@ At this step, you should have the following result in the Configuration -> Notif
 *note that at this point, you shouldn't have any PHP Notice nor any Error in your logfile
 (/var/opt/rh/rh-php72/log/php-fpm/centreon-error.log)*
 
-### PROVIDER RULE'S FORM
+## FORM BASICS <a name="form-basics"></a>  
 In this chapter, step by step, we're going to enhance the form that we've initiated.
 
-#### Default options
+### Default options <a name="default-options"></a>
 First of all, we need to let people fill the default options to reach the Glpi REST API.
 What we need are:
 - an address for the Glpi server
@@ -170,7 +184,7 @@ protected function _setDefaultValueExtra() {
 By now, this change has done nothing, because Centreon is using Smarty as a template engine. We need to configure
 that in order to have our form displayed on the web interface.
 
-#### Displaying our default options
+### Display our default options <a name="display-our-default-options"></a>
 In order to get a better understanding of what we're doing, we are going to quickly initiate our template engine Smarty
 
 ```php
@@ -304,7 +318,7 @@ When done, you should have the following result and still no errors (or notices)
 
 ![web ui with glpi server info](images/add_glpi_server_params.png)
 
-#### Saving our first rule
+### Save our first rule <a name="save-our-first-rule"></a>
 
 Now that we have a somewhat cool looking form, fill it with some random information like on the screenshot below
 
@@ -334,7 +348,7 @@ protected function saveConfigExtra() {
 You've made it, now, if you delete your old failed rule, create a new one, fill our fields with random data and save the form.
 It should be saved.
 
-#### Control the saved data
+### Check the saved data <a name="check-the-saved-data"></a>
 What if I tell you that, you shouldn't let people save the form without having filled the mandatory fields that are:
 - address
 - API path
@@ -407,7 +421,7 @@ We're done with this for the moment. Go try it out by removing the configuration
 like on the screenshot below
 ![mandatory fields](images/mandatory_fields.png)
 
-#### Ticket arguments
+## TICKET ARGUMENTS <a name="ticket-arguments"></a>
 Now is the time to start configuring our tickets arguments. We're going to start with a few parameters so everything
 is understandable.
 Here is the list of what we're going to configure:
@@ -417,7 +431,7 @@ Here is the list of what we're going to configure:
 - the entity linked to the ticket (this is a specific Glpi parameter)
 - the urgency of the ticket (this is a specific Glpi parameter)
 
-##### Parameters initialization
+### Arguments initialization <a name="arguments-initialization"></a>
 Let's jump back to the top of our class and initiate a few variables
 
 ```php
@@ -437,7 +451,7 @@ class TutoGlpiProvider extends AbstractProvider {
         self::ARG_TITLE => 'title'
     );
 
-    // ... rest of the code
+    // ... code ... //
 }
 ```
 
@@ -450,7 +464,7 @@ We're going to put the debug inside the `_getConfigContainer1Extra()` function. 
      fwrite($file, print_r($this->_internal_arg_name,true));
      fclose($file);
 
-     // ... code ....
+     // ... code .... //
 }
 ```
 
@@ -468,6 +482,7 @@ Array
 ```
 Now that you've seen the debug, we can remove the fopen, fwrite and fclose statement that we've added.
 
+### Default ticket arguments options <a name="default-ticket-arguments-options"></a>
 Like we did at the beginning, we need to let people configure those parameters
 
 ```php
@@ -504,6 +519,7 @@ protected function _setDefaultValueExtra() {
 }
 ```
 
+### Display default ticket arguments <a name="display-default-ticket-arguments"></a>
 We are going to face the same issue than before, nothing is going to be displayed on our webinterface if
 we don't link it to our template one way or another.
 
