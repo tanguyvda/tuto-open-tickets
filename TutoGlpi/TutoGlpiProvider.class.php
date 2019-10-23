@@ -52,7 +52,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->default_data['clones']['mappingTicket'] = array(
           array(
             'Arg' =>  self::ARG_TITLE,
-            'Value' => 'Issue {incluse file="file:$_centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
+            'Value' => 'Issue {include file="file:$_centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
           ),
           array(
             'Arg' => self::ARG_CONTENT,
