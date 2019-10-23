@@ -406,3 +406,64 @@ But people may be blind, so we need to add an extra layer of security
 We're done with this for the moment. Go try it out by removing the configuration of one of the mandatory fields and save the form
 like on the screenshot below
 ![mandatory fields](images/mandatory_fields.png)
+
+#### Ticket arguments
+Now is the time to start configuring our tickets arguments. We're going to start with a few parameters so everything
+is understandable.
+Here is the list of what we're going to configure:
+
+- the body (content) of the ticket
+- the subject of the ticket
+- the entity linked to the ticket (this is a specific Glpi parameter)
+- the urgency of the ticket (this is a specific Glpi parameter)
+
+##### Parameters initialization
+Let's jump back to the top of our class and initiate a few variables
+
+```php
+class TutoGlpiProvider extends AbstractProvider {
+
+    const GLPI_ENTITIES_TYPE = 10;
+
+    const ARG_CONTENT = 1;
+    const ARG_ENTITY = 2;
+    const ARG_URGENCY = 3;
+    const ARG_TITLE = 4;
+
+    protected $_internal_arg_name = array(
+        self::ARG_CONTENT => 'content',
+        self::ARG_ENTITY => 'entity',
+        self::ARG_URGENCY => 'urgency',
+        self::ARG_TITLE => 'title'
+    );
+
+    // ... rest of the code
+}
+```
+
+This is where things can be confusing for beginners. So we're going to add a bit of debug there.
+We're going to put the debug inside the `_getConfigContainer1Extra()` function. So your function should look like that:
+
+```php
+ protected function _getConfigContainer1Extra() {
+     $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/tuto.log", "w") or die ("Unable to open file!");
+     fwrite($file, print_r($this->_internal_arg_name,true));
+     fclose($file);
+
+     // ... code ....
+}
+```
+
+If you go on the rule form page, nothing should have changed but a new logfile should have appeared in
+`/var/opt/rh/rh-php72/log/php-fpm/tuto.log`
+
+```php
+Array
+(
+    [1] => content
+    [2] => entity
+    [3] => urgency
+    [4] => title
+)
+```
+Now that you've seen the debug, we can remove the fopen, fwrite and fclose statement that we've added. 

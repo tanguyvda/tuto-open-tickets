@@ -21,12 +21,27 @@
 
 class TutoGlpiProvider extends AbstractProvider {
 
+    const GLPI_ENTITIES_TYPE = 10;
+
+    const ARG_CONTENT = 1;
+    const ARG_ENTITY = 2;
+    const ARG_URGENCY = 3;
+    const ARG_TITLE = 4;
+
+    protected $_internal_arg_name = array(
+        self::ARG_CONTENT => 'content',
+        self::ARG_ENTITY => 'entity',
+        self::ARG_URGENCY => 'urgency',
+        self::ARG_TITLE => 'title'
+    );
+
     /*
     * Set default values for our rule form options
     *
     * @return void
     */
     protected function _setDefaultValueExtra() {
+
         $this->default_data['address'] = '10.30.2.2';
         $this->default_data['api_path'] = '/glpi/apirest.php';
         $this->default_data['user_token'] = '';
