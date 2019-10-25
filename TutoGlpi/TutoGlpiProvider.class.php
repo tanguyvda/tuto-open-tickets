@@ -70,6 +70,17 @@ class TutoGlpiProvider extends AbstractProvider {
     }
 
     protected function _setDefaultValueMain($body_html = 0) {
+        parent::_setDefaultValueMain();
+
+        $this->default_data['clones']['groupList'] = array(
+            array(
+                'Id' => 'glpi_entity',
+                'Label' => _('Entity'),
+                'Type' => self::GLPI_ENTITIES_TYPE,
+                'Filter' => '',
+                'Mandatory' => ''
+            )
+      );
 
     }
 
@@ -206,6 +217,10 @@ class TutoGlpiProvider extends AbstractProvider {
     }
 
     protected function getGroupListOptions() {
+        $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
+
+        return $str;
+
     }
 
     protected function assignOthers($entry, &$groups_order, &$groups) {

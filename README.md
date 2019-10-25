@@ -11,6 +11,7 @@
     - [Arguments initialization](#arguments-initialization)
     - [Default ticket arguments options](#default-ticket-arguments-options)
     - [Display default ticket arguments](#display-default-ticket-arguments)
+6. [PREPARING THE WIDGET](#preparing-the-widget)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
@@ -658,7 +659,7 @@ protected function saveConfigExtra() {
 
 Now that it is done, you should be able to save your form properly.
 
-## PREPARING THE WIDGET
+## PREPARING THE WIDGET <a name="preparing-the-widget"></a>
 Things are getting serious and to have a better understanding of the code that we're going to write, we need to
 save a real configuration.
 
@@ -673,3 +674,21 @@ Now is the time to get a glimpse on what is happening on our widget. Add an open
 Configure it so it uses your glpi rule and try to open a ticket. You should have something that looks like that:
 
 ![fail widget](images/widget-fail.gif)
+
+### INITIATE THE ARGUMENT LISTING IN THE WIDGET
+To display our listing in the widget, we need to initiate them in the rule form
+
+```php
+  parent::_setDefaultValueMain();
+
+  $this->default_data['clones']['groupList'] = array(
+    array(
+      'Id' => 'glpi_entity',
+      'Label' => _('Entity'),
+      'Type' => self::GLPI_ENTITIES_TYPE,
+      'Filter' => '',
+      'Mandatory' => ''
+    )
+  );
+}
+```
