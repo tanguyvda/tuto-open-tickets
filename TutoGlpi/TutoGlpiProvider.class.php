@@ -151,13 +151,13 @@ class TutoGlpiProvider extends AbstractProvider {
                 'html' => $timeout_html
             ),
             //we add a key to our array
-            'mappingticket' => array(
+            'mappingTicket' => array(
                 'label' => _('Mapping ticket arguments')
             )
         );
 
         // html
-        $mappingTicketValue_html = '<input id="mappingTicketValue_#index#" name="mappingTicketValue[#index#] size="20" type="text"';
+        $mappingTicketValue_html = '<input id="mappingTicketValue_#index#" name="mappingTicketValue[#index#]" size="20" type="text"';
 
         // html code for a dropdown list where we will be able to select something from the following list
         $mappingTicketArg_html = '<select id="mappingTicketArg_#index#" name="mappingTicketArg[#index#]" type="select-one">' .
@@ -200,10 +200,12 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
         $this->_save_config['simple']['https'] = $this->_submitted_config['https'];
         $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
+
+        // saves the ticket arguments
+        $this->_save_config['clones']['mappingTicket'] = $this->_getCloneSubmitted('mappingTicket', array('Arg', 'Value'));
     }
 
     protected function getGroupListOptions() {
-
     }
 
     protected function assignOthers($entry, &$groups_order, &$groups) {

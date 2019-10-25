@@ -559,13 +559,13 @@ protected function _getConfigContainer1Extra() {
       'html' => $timeout_html
     ),
     //we add a key to our array
-    'mappingticket' => array(
+    'mappingTicket' => array(
       'label' => _('Mapping ticket arguments')
     )
   );
 
   // html
-  $mappingTicketValue_html = '<input id="mappingTicketValue_#index#" name="mappingTicketValue[#index#] size="20" type="text"';
+  $mappingTicketValue_html = '<input id="mappingTicketValue_#index#" name="mappingTicketValue[#index#]" size="20" type="text"';
 
   // html code for a dropdown list where we will be able to select something from the following list
   $mappingTicketArg_html = '<select id="mappingTicketArg_#index#" name="mappingTicketArg[#index#]" type="select-one">' .
@@ -602,7 +602,7 @@ add the end of this file add:
 
 <tr class="list_one">
     <td class="FormRowField">
-        {$form.mappingticket.label}
+        {$form.mappingTicket.label}
     </td>
     <td class="FormRowValue">
         {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/clone.ihtml" cloneId="mappingTicket" cloneSet=$form.mappingTicket}
@@ -626,3 +626,50 @@ we are cloning elements and by doing it, we want to map a ticket argument (conte
 To have a better overview of that, just go back to the rule menu, create a new rule, select TutoGlpi as a rule, and you'll each ticket arguments linked (mapped) with a value.
 
 ![ticket args](images/ticket_args2.png)
+
+### Save ticket arguments  <a name="save-ticket-arguments"></a>
+History repeats itself, and here we are gain, with a form that won't save itself. If you've been attentive you should know
+where we're heading.
+
+If you're not quite confident with what is happening, just try to create a new rule and add some random data like below
+
+![ticket save args](images/ticket_args_save1.png)
+
+Then, if you save the form and go back on it every ticket args should have disappeared.
+
+![ticket save args](images/ticket_args_save2.png)
+
+This is easy to fix, we just need to add our ticket arguments to the save function that we've created earlier.
+
+```php
+protected function saveConfigExtra() {
+  $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
+  $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
+  $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
+  $this->_save_config['simple']['https'] = (isset($this->_submitted_config['https']) && $this->_submitted_config['https'] == 'yes') ?
+      $this->_submitted_config['https'] : '';
+  $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
+  $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
+
+  // saves the ticket arguments
+  $this->_save_config['clones']['mappingTicket'] = $this->_getCloneSubmitted('mappingTicket', array('Arg', 'Value'));
+}
+```
+
+Now that it is done, you should be able to save your form properly.
+
+## PREPARING THE WIDGET
+Things are getting serious and to have a better understanding of the code that we're going to write, we need to
+save a real configuration.
+
+- address: 10.30.2.46
+- api_path: /glpi/apirest.php
+- user_token: cYpJTf0SAPHHGP561chJJxoGV2kivhDv3nFYxQbl
+- app_token: f5Rm9t5ozAyhcHDpHoMhFoPapi49TAVsXBZwulMR
+
+![real config](images/real_config.png)
+
+Now is the time to get a glimpse on what is happening on our widget. Add an open tickets widget in a custom view.
+Configure it so it uses your glpi rule and try to open a ticket. You should have something that looks like that:
+
+![fail widget](images/widget-fail.gif)
