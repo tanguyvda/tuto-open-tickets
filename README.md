@@ -12,6 +12,8 @@
     - [Default ticket arguments options](#default-ticket-arguments-options)
     - [Display default ticket arguments](#display-default-ticket-arguments)
 6. [PREPARING THE WIDGET](#preparing-the-widget)
+    - [Initiate a custom argument listing in the widget](#initiate-a-custom-argument-listing-in-the-widget)
+    - [Adding values to our custom listing](#adding-values-to-our-custom-listing)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
@@ -675,7 +677,7 @@ Configure it so it uses your glpi rule and try to open a ticket. You should have
 
 ![fail widget](images/widget-fail.gif)
 
-### INITIATE A CUSTOM ARGUMENT LISTING IN THE WIDGET <a name="initiate-a-custom-argument-listing-in-the-widget"></a>
+### Initiate a custom argument listing in the widget <a name="initiate-a-custom-argument-listing-in-the-widget"></a>
 We are going to start with the Urgency. Because it is going to be what we call a custom list. Meaning that
 the value of the Urgency is not going to be gathered from Glpi but from a list created by the user.
 
@@ -698,12 +700,12 @@ protected function _setDefaultValueMain() {
 ```
 
 to test this code, create a new rule using our provider. You should have the following option in your form.
-![custom list](custom_list1.png)
+![custom list](images/custom_list1.png)
 
 save your configuration and try to open a ticket with your widget. You should have something like this:
-![widget options](widget_options1.png)
+![widget options](images/widget_options1.png)
 
-### ADDING VALUES TO OUR CUSTOM LISTING <a name="addding-values-to-our-custom-listing"></a>
+### Adding values to our custom listing <a name="addding-values-to-our-custom-listing"></a>
 What can be cool is to have an already configured listing in our rule form.
 
 To display our listing in the widget, we need to initiate them in the rule form
@@ -748,11 +750,11 @@ protected function _setDefaultValueMain(){
 
 Now that you're done configuring the custom list, if you try to create a new rule, you should have
 the following list:
-![custom list](custom_list2.png)
+![custom list](images/custom_list2.png)
 
 you can finish configure this new rule or just take the old one and manually configure the custom list.
 When done, open a ticket through the widget and you should have the following list that appears:
-![widget options](widget_options2.png)
+![widget options](images/widget_options2.png)
 
 
 ```php
