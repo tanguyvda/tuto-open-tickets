@@ -14,6 +14,7 @@
 6. [PREPARING THE WIDGET](#preparing-the-widget)
     - [Initiate a custom argument listing in the widget](#initiate-a-custom-argument-listing-in-the-widget)
     - [Adding values to our custom listing](#adding-values-to-our-custom-listing)
+    - [Initiate a ticket argument listing](initiate-a-ticket-argument-listing)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
@@ -756,11 +757,23 @@ you can finish configure this new rule or just take the old one and manually con
 When done, open a ticket through the widget and you should have the following list that appears:
 ![widget options](images/widget_options2.png)
 
+### Initiate a ticket argument listing <a name="initiate-a-ticket-argument-listing"></a>
+Just before, we used a custom list. The type of the list was `self::CUSTOM_TYPE`. And if we jump back to
+[Arguments initialization](#arguments-initialization), we see that we've created a `GLPI_ENTITIES_TYPE`. Let's
+make the best out of it
 
 ```php
+protected function _setDefaultValueMain() {
   parent::_setDefaultValueMain();
 
   $this->default_data['clones']['groupList'] = array(
+    array(
+      'Id' => 'urgency',
+      'Label' => _('Urgency'),
+      'Type' => self::CUSTOM_TYPE,
+      'Filter' => '',
+      'Mandatory' => ''
+    ),
     array(
       'Id' => 'glpi_entity',
       'Label' => _('Entity'),
@@ -769,5 +782,33 @@ When done, open a ticket through the widget and you should have the following li
       'Mandatory' => ''
     )
   );
+
+  // ... code ... //
 }
 ```
+In order to have the GLPI_ENTITIES_TYPE correctly defined, we need to add this option to listing that is already composed of
+
+- Host group
+- Host category
+- Host severity
+- Service group
+- Service severity
+- Contact group
+- Body
+- Custom
+- Glpi entities (coming soon)
+
+To improve this listing we need to add the following code:
+
+```php
+protected function getGroupListOptions() {
+  $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
+
+  return $str
+}
+```
+ Now, if you try to create a new rule form, you'll have the following option:
+ ![custom list](images/custom_list3.png)
+
+ Needless to go in your widget to test this out. You won't see any new list there. That's because the data will
+ come from the ticketing software. And we yet have to gather this data. We will see that in the next chapter. Now that we are done configuring the form (well, done for the basics).

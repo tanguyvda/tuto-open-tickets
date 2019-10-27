@@ -73,13 +73,13 @@ class TutoGlpiProvider extends AbstractProvider {
         parent::_setDefaultValueMain();
 
         $this->default_data['clones']['groupList'] = array(
-            // array(
-            //     'Id' => 'glpi_entity',
-            //     'Label' => _('Entity'),
-            //     'Type' => self::GLPI_ENTITIES_TYPE,
-            //     'Filter' => '',
-            //     'Mandatory' => ''
-            // ),
+            array(
+                'Id' => 'glpi_entity',
+                'Label' => _('Entity'),
+                'Type' => self::GLPI_ENTITIES_TYPE,
+                'Filter' => '',
+                'Mandatory' => ''
+            ),
             array (
                 'Id' => 'urgency',
                 'Label' => _('Urgency'),
@@ -256,9 +256,9 @@ class TutoGlpiProvider extends AbstractProvider {
     }
 
     protected function getGroupListOptions() {
-        // $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
-        //
-        // return $str;
+        $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
+
+        return $str;
 
     }
 
