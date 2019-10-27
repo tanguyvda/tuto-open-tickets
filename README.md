@@ -2,7 +2,7 @@
 1. [INTRODUCTION](#introduction)
 2. [STARTING OUR PROJECT](#start-our-project)
 3. [CREATE YOUR CODE STRUCTURE](#create-your-code-structure)
-4. [FORM BASCICS](#form-basics)
+4. [FORM BASICS](#form-basics)
     - [Default options](#default-options)
     - [Display our default options](#display-our-default-options)
     - [Save our first rule](#save-our-first-rule)
