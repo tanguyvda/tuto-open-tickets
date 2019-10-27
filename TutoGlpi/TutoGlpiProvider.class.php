@@ -73,16 +73,55 @@ class TutoGlpiProvider extends AbstractProvider {
         parent::_setDefaultValueMain();
 
         $this->default_data['clones']['groupList'] = array(
-            array(
-                'Id' => 'glpi_entity',
-                'Label' => _('Entity'),
-                'Type' => self::GLPI_ENTITIES_TYPE,
+            // array(
+            //     'Id' => 'glpi_entity',
+            //     'Label' => _('Entity'),
+            //     'Type' => self::GLPI_ENTITIES_TYPE,
+            //     'Filter' => '',
+            //     'Mandatory' => ''
+            // ),
+            array (
+                'Id' => 'urgency',
+                'Label' => _('Urgency'),
+                'Type' => self::CUSTOM_TYPE,
                 'Filter' => '',
                 'Mandatory' => ''
             )
-      );
+        );
+        $this->default_data['clones']['customList'] = array(
+            array(
+                'Id' => 'urgency',
+                'Value' => '1',
+                'Label' => 'Very High',
+                'Default' => ''
+            ),
+            array(
+                'Id' => 'urgency',
+                'Value' => '2',
+                'Label' => 'High',
+                'Default' => ''
+            ),
+            array(
+                'Id' => 'urgency',
+                'Value' => '3',
+                'Label' => 'Medium',
+                'Default' => ''
+            ),
+            array(
+                'Id' => 'urgency',
+                'Value' => '4',
+                'Label' => 'Low',
+                'Default' => ''
+            ),
+            array(
+                'Id' => 'urgency',
+                'Value' => '5',
+                'Label' => 'Very Low',
+                'Default' => ''
+            ),
+        );
 
-    }
+}
 
     /*
     * Verify if every mandatory form field is filled with data
@@ -217,9 +256,9 @@ class TutoGlpiProvider extends AbstractProvider {
     }
 
     protected function getGroupListOptions() {
-        $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
-
-        return $str;
+        // $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
+        //
+        // return $str;
 
     }
 
