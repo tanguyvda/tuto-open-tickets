@@ -69,6 +69,11 @@ class TutoGlpiProvider extends AbstractProvider {
         );
     }
 
+    /*
+    * Set default values for the widget popup when opening a ticket
+    *
+    * @return void
+    */
     protected function _setDefaultValueMain($body_html = 0) {
         parent::_setDefaultValueMain();
 
@@ -120,8 +125,7 @@ class TutoGlpiProvider extends AbstractProvider {
                 'Default' => ''
             ),
         );
-
-}
+    }
 
     /*
     * Verify if every mandatory form field is filled with data
@@ -255,6 +259,11 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->_save_config['clones']['mappingTicket'] = $this->_getCloneSubmitted('mappingTicket', array('Arg', 'Value'));
     }
 
+    /*
+    * Adds new types to the list of types
+    *
+    * @return string (html code that add an option to a select)
+    */
     protected function getGroupListOptions() {
         $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
 
