@@ -14,7 +14,7 @@
 6. [PREPARING THE WIDGET](#preparing-the-widget)
     - [Initiate a custom argument listing in the widget](#initiate-a-custom-argument-listing-in-the-widget)
     - [Adding values to our custom listing](#adding-values-to-our-custom-listing)
-    - [Initiate a ticket argument listing](initiate-a-ticket-argument-listing)
+    - [Initiate a ticket argument listing](#initiate-a-ticket-argument-listing)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
@@ -706,7 +706,7 @@ to test this code, create a new rule using our provider. You should have the fol
 save your configuration and try to open a ticket with your widget. You should have something like this:
 ![widget options](images/widget_options1.png)
 
-### Adding values to our custom listing <a name="addding-values-to-our-custom-listing"></a>
+### Adding values to our custom listing <a name="adding-values-to-our-custom-listing"></a>
 What can be cool is to have an already configured listing in our rule form.
 
 To display our listing in the widget, we need to initiate them in the rule form
