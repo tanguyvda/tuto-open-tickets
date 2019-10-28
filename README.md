@@ -15,6 +15,8 @@
     - [Initiate a custom argument listing in the widget](#initiate-a-custom-argument-listing-in-the-widget)
     - [Adding values to our custom listing](#adding-values-to-our-custom-listing)
     - [Initiate a ticket argument listing](#initiate-a-ticket-argument-listing)
+7. [GATHER TICKET ARGUMENTS FROM THE TICKETING SOFTWARE](#gather-ticket-arguments-from-the-ticketing-software)
+    - [Test the API connection](#test-the-api-connection)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
@@ -807,8 +809,259 @@ protected function getGroupListOptions() {
   return $str
 }
 ```
- Now, if you try to create a new rule form, you'll have the following option:
- ![custom list](images/custom_list3.png)
+Now, if you try to create a new rule form, you'll have the following option:
+![custom list](images/custom_list3.png)
 
- Needless to go in your widget to test this out. You won't see any new list there. That's because the data will
- come from the ticketing software. And we yet have to gather this data. We will see that in the next chapter. Now that we are done configuring the form (well, done for the basics).
+Needless to go in your widget to test this out. You won't see any new list there. That's because the data will
+come from the ticketing software. And we yet have to gather this data. We will see that in the next chapter. Now that we are done configuring the form (well, done for the basics), we are going to create our own code.
+
+## GATHER TICKET ARGUMENTS FROM THE TICKETING SOFTWARE <a name="gather-ticket-arguments-from-the-ticketing-software"></a>
+**DISCLAIMER: this tutorial is not here to teach people how to code. I don't consider myself as the best PHP developper ever.
+There may be ways to improve what we are going to do**
+In this chapter we're going to get informations from Glpi and find a way to link them to our previously made listing. To do so, this is the first time we're going to write our own code. Obviously, we can use other providers to help us.
+
+### Code structure <a name="code-structure"></a>
+Let's have a look at what we're expecting from the code now:
+
+```php
+// link the list type with computed data in order to display the listing in the widget
+protected function assignOthers($entry, &$groups_order, &$groups) {
+
+}
+
+// compute the retrieved data from the ITSM software
+protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
+
+}
+
+// test restAPI connection
+public function test($info) {
+
+}
+
+// handle curl queries
+protected function curlQuery() {
+
+}
+
+// get entities from Glpi
+protected function getEntities() {
+
+}
+
+// initiate the API session
+protected function initSession($info) {
+
+}
+```
+
+### Test the API connection <a name="test-the-api-connection"></a>
+In this part, we're going to add a test button in the rule form. Test button that is going to
+help us build a well rounded REST connection to Glpi. This is a rather important chapter since we are going to
+work with smarty, PHP and ajax.
+The function is public because it is going to be called from outside of the class
+
+```php
+static public function test($info) {
+      // this is called through our javascript code. Those parameters are already checked in JS code.
+      // but since this function is public, we check again because anyone could use this function
+      if (!isset($info['address']) || !isset($info['api_path']) || !isset($info['user_token'])
+          || !isset($info['app_token'])
+      ) {
+          throw new \Exception('missing arguments', 13);
+      }
+
+      // try to get a session token from Glpi
+      try {
+          self::initSession($info);
+      } catch (\Exception $e) {
+          throw new \Exception($e->getMessage(), $e->getCode());
+      }
+
+      return true;
+}
+```
+As you can see, every API related information is stored in a `$info` array.
+
+```php
+static protected function initSession($info) {
+    // check if we have our api informations
+    if (empty($info)) {
+      throw new \Exception('no API parameters found.', 12);
+    }
+
+    // add the api endpoint and method to our info array
+    $info['query_endpoint'] = '/initSession';
+    $info['method'] = 0;
+    // set headers
+    $info['headers'] = array(
+      'App-Token: ' . $info['app_token'],
+      'Authorization: user_token ' . $info['user_token'],
+      'Content-Type: application/json'
+    );
+    // try to call the rest api
+    try {
+      $curlResult = json_decode(self::curlQuery($info), true);
+    } catch (\Exception $e) {
+      throw new Exception($e->getMessage(), $e->getCode());
+    }
+
+    return $curlResult;
+}
+
+static protected function curlQuery($info) {
+      // check if php curl is installed
+      if (!extension_loaded("curl")) {
+          throw new \Exception("couldn't find php curl", 10);
+      }
+      $curl = curl_init();
+
+      $apiAddress = $info['address'] . $info['api_path'] . $info['query_endpoint'];
+
+      // initiate our curl options
+      curl_setopt($curl, CURLOPT_URL, $apiAddress);
+      curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
+      curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+      curl_setopt($curl, CURLOPT_POST, $info['method']);
+      // add postData if needed
+      if ($info['method']) {
+          curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
+      }
+      // change curl method with a custom one (PUT, DELETE) if needed
+      if (isset($info['custom_request'])) {
+          curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $info['custom_request']);
+      }
+
+      // execute curl and get status information
+      $curlResult = curl_exec($curl);
+      $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+      curl_close($curl);
+
+      if ($httpCode > 301) {
+          throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
+      }
+
+      return $curlResult;
+}
+```
+
+PHP wise, we should be good. We have a test function that is going to return the state of our connection.
+We have a function to initiate the session with Glpi. And finally, we have a function that is going to handle every curl query.
+
+Now we need to create our ajax call. To do so, open your template file. `vi conf_container1extra.ihtml`
+```html
+
+<!-- ... code ... -->
+
+<tr class="list_one">
+  <td class="FormRowField">
+    {t}Test authentication{/t}
+  </td>
+  <td class="FormRowValue">
+    <button class="btc bt_action" id="test-glpi">{t}Test{/t}</button>
+    <span id="test-error" class="error_message" style="display: none; color: red;"></span>
+    <span id="test-ok" class="okay_message" style="display: none; color:green;"></span>
+  </td>
+</tr>
+
+<!-- the code below was already there, i've changed the tr class right under this comment line -->
+<tr class="list_two">
+  <td class="FormRowField">
+    {$form.mappingTicket.label}
+  </td>
+  <td class="FormRowValue">
+    {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/clone.ihtml" cloneId="mappingTicket" cloneSet=$form.mappingTicket}
+  </td>
+</tr>
+<!-- now we are going to write new code again -->
+
+<script>
+  var webServiceUrl = '{$webServiceUrl}'
+</script>
+{literal}
+<script>
+  // start the button on click event
+  jQuery('#test-glpi').on('click', function (e) {
+    e.preventDefault();
+    jQuery('.error_message').hide();
+
+    let fields = [
+      'address',
+      'api_path',
+      'app_token',
+      'user_token'
+    ];
+
+    let i;
+    let inError = false;
+    let field;
+    // check if each field is filled ...
+    for (i = 0; i < fields.length; i++) {
+      field = 'input[name="' + fields[i] + '"]';
+      if (jQuery(field).val().trim() === '') {
+        jQuery('#test-error').text('A required field is empty.');
+        jQuery('#test-error').show();
+        jQuery('#err-' + fields[i]).text('This field is required.').show();
+        inError = true;
+      }
+    }
+
+    // ... if not, end script execution
+    if (inError) {
+      return;
+    }
+
+    // start ajax callback
+    jQuery.ajax({
+      // call open ticket api with every needed parameter
+      url: webServiceUrl + '?object=centreon_openticket&action=testProvider',
+      type: 'POST',
+      contentType: 'application/json',
+      dataType: 'json',
+      data: JSON.stringify({
+        service: 'TutoGlpi', // this is the name of our provider
+        address: jQuery('input[name="address"]').val(),
+        api_path: jQuery('input[name="api_path"]').val(),
+        app_token: jQuery('input[name="app_token"]').val(),
+        user_token: jQuery('input[name="user_token"]').val()
+      }),
+      success: function (data) {
+        if (data) {
+          jQuery('#test-ok').text('Connection is ok');
+          jQuery('#test-ok').show();
+        } else {
+          jQuery('#test-error').text('unknown issue');
+          jQuery('#test-error').show();
+        }
+      },
+      error: function (error) {
+        jQuery('#test-error').text(error.responseText);
+        jQuery('#test-error').show();
+      }
+    });
+  })
+</script>
+{/literal}
+```
+If you are careful, you'll see that in the above code, we have a variable called `$webServiceUrl` that is coming from nowhere.
+And if you start to understand how our template engine works, we need to assign a value to this variable. To do so, jump back to the **_getConfigContainer1Extra** function and make sure you assign a value to **webServieUrl** like below
+
+```php
+protected function _getConfigContainer1Extra() {
+  // initiate smarty and a few variables.
+  $tpl = new Smarty();
+  $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/TutoGlpi/templates',
+    $this->_centreon_path);
+  $tpl->assign('centreon_open_tickets_path', $this->_centreon_open_tickets_path);
+  $tpl->assign('img_brick', './modules/centreon-open-tickets/images/brick.png');
+  // Don't be afraid when you see _('Tuto Glpi'), that is just a short syntax for gettext. It is used to translate strings.
+  $tpl->assign('header', array('TutoGlpi' => _("Tuto Glpi Configuration Part")));
+  $tpl->assign('webServieUrl', './api/internal.php');
+
+  // ... code ... //
+}
+```
+
+If everything is done correctly, we should have the following result in our rule form:
+![test button](images/test_connection.png)

@@ -165,6 +165,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $tpl->assign('img_brick', './modules/centreon-open-tickets/images/brick.png');
         // Don't be afraid when you see _('Tuto Glpi'), that is just a short syntax for gettext. It is used to translate strings.
         $tpl->assign('header', array('TutoGlpi' => _("Tuto Glpi")));
+        $tpl->assign('webServiceUrl', './api/internal.php');
 
         /*
         * we create the html that is going to be displayed
@@ -285,6 +286,86 @@ class TutoGlpiProvider extends AbstractProvider {
 
     protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extra_ticket_arguments=array()) {
 
+    }
+
+    static public function test($info) {
+        // this is called through our javascript code. Those parameters are already checked in JS code.
+        // but since this function is public, we check again because anyone could use this function
+        if (!isset($info['address']) || !isset($info['api_path']) || !isset($info['user_token'])
+            || !isset($info['app_token'])
+        ) {
+            throw new \Exception('missing arguments', 13);
+        }
+
+        // try to get a session token from Glpi
+        try {
+            self::initSession($info);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage(), $e->getCode());
+        }
+
+        return true;
+    }
+
+    static protected function initSession($info) {
+      // check if we have our api informations
+      if (empty($info)) {
+        throw new \Exception('no API parameters found.', 12);
+      }
+
+      // add the api endpoint and method to our info array
+      $info['query_endpoint'] = '/initSession';
+      $info['method'] = 0;
+      // set headers
+      $info['headers'] = array(
+        'App-Token: ' . $info['app_token'],
+        'Authorization: user_token ' . $info['user_token'],
+        'Content-Type: application/json'
+      );
+      // try to call the rest api
+      try {
+        $curlResult = json_decode(self::curlQuery($info), true);
+      } catch (\Exception $e) {
+        throw new Exception($e->getMessage(), $e->getCode());
+      }
+
+      return $curlResult;
+    }
+
+    static protected function curlQuery($info) {
+        // check if php curl is installed
+        if (!extension_loaded("curl")) {
+            throw new \Exception("couldn't find php curl", 10);
+        }
+        $curl = curl_init();
+
+        $apiAddress = $info['address'] . $info['api_path'] . $info['query_endpoint'];
+
+        // initiate our curl options
+        curl_setopt($curl, CURLOPT_URL, $apiAddress);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_POST, $info['method']);
+        // add postData if needed
+        if ($info['method']) {
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
+        }
+        // change curl method with a custom one (PUT, DELETE) if needed
+        if (isset($info['custom_request'])) {
+            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $info['custom_request']);
+        }
+
+        // execute curl and get status information
+        $curlResult = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($httpCode >= 400) {
+            throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
+        }
+
+        return $curlResult;
     }
 
 }
