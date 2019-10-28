@@ -16,6 +16,7 @@
     - [Adding values to our custom listing](#adding-values-to-our-custom-listing)
     - [Initiate a ticket argument listing](#initiate-a-ticket-argument-listing)
 7. [GATHER TICKET ARGUMENTS FROM THE TICKETING SOFTWARE](#gather-ticket-arguments-from-the-ticketing-software)
+    - [Code structure](#code-structure)
     - [Test the API connection](#test-the-api-connection)
 
 ## INTRODUCTION <a name="introduction"></a>
@@ -818,6 +819,7 @@ come from the ticketing software. And we yet have to gather this data. We will s
 ## GATHER TICKET ARGUMENTS FROM THE TICKETING SOFTWARE <a name="gather-ticket-arguments-from-the-ticketing-software"></a>
 **DISCLAIMER: this tutorial is not here to teach people how to code. I don't consider myself as the best PHP developper ever.
 There may be ways to improve what we are going to do**
+
 In this chapter we're going to get informations from Glpi and find a way to link them to our previously made listing. To do so, this is the first time we're going to write our own code. Obviously, we can use other providers to help us.
 
 ### Code structure <a name="code-structure"></a>
@@ -863,86 +865,86 @@ The function is public because it is going to be called from outside of the clas
 
 ```php
 static public function test($info) {
-      // this is called through our javascript code. Those parameters are already checked in JS code.
-      // but since this function is public, we check again because anyone could use this function
-      if (!isset($info['address']) || !isset($info['api_path']) || !isset($info['user_token'])
-          || !isset($info['app_token'])
-      ) {
-          throw new \Exception('missing arguments', 13);
-      }
+  // this is called through our javascript code. Those parameters are already checked in JS code.
+  // but since this function is public, we check again because anyone could use this function
+  if (!isset($info['address']) || !isset($info['api_path']) || !isset($info['user_token'])
+    || !isset($info['app_token'])
+  ) {
+    throw new \Exception('missing arguments', 13);
+  }
 
-      // try to get a session token from Glpi
-      try {
-          self::initSession($info);
-      } catch (\Exception $e) {
-          throw new \Exception($e->getMessage(), $e->getCode());
-      }
+  // try to get a session token from Glpi
+  try {
+    self::initSession($info);
+  } catch (\Exception $e) {
+    throw new \Exception($e->getMessage(), $e->getCode());
+  }
 
-      return true;
+  return true;
 }
 ```
 As you can see, every API related information is stored in a `$info` array.
 
 ```php
 static protected function initSession($info) {
-    // check if we have our api informations
-    if (empty($info)) {
-      throw new \Exception('no API parameters found.', 12);
-    }
+  // check if we have our api informations
+  if (empty($info)) {
+    throw new \Exception('no API parameters found.', 12);
+  }
 
-    // add the api endpoint and method to our info array
-    $info['query_endpoint'] = '/initSession';
-    $info['method'] = 0;
-    // set headers
-    $info['headers'] = array(
-      'App-Token: ' . $info['app_token'],
-      'Authorization: user_token ' . $info['user_token'],
-      'Content-Type: application/json'
-    );
-    // try to call the rest api
-    try {
-      $curlResult = json_decode(self::curlQuery($info), true);
-    } catch (\Exception $e) {
-      throw new Exception($e->getMessage(), $e->getCode());
-    }
+  // add the api endpoint and method to our info array
+  $info['query_endpoint'] = '/initSession';
+  $info['method'] = 0;
+  // set headers
+  $info['headers'] = array(
+    'App-Token: ' . $info['app_token'],
+    'Authorization: user_token ' . $info['user_token'],
+    'Content-Type: application/json'
+  );
+  // try to call the rest api
+  try {
+    $curlResult = json_decode(self::curlQuery($info), true);
+  } catch (\Exception $e) {
+    throw new Exception($e->getMessage(), $e->getCode());
+  }
 
-    return $curlResult;
+  return $curlResult;
 }
 
 static protected function curlQuery($info) {
-      // check if php curl is installed
-      if (!extension_loaded("curl")) {
-          throw new \Exception("couldn't find php curl", 10);
-      }
-      $curl = curl_init();
+  // check if php curl is installed
+  if (!extension_loaded("curl")) {
+    throw new \Exception("couldn't find php curl", 10);
+  }
+  $curl = curl_init();
 
-      $apiAddress = $info['address'] . $info['api_path'] . $info['query_endpoint'];
+  $apiAddress = $info['address'] . $info['api_path'] . $info['query_endpoint'];
 
-      // initiate our curl options
-      curl_setopt($curl, CURLOPT_URL, $apiAddress);
-      curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
-      curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($curl, CURLOPT_POST, $info['method']);
-      // add postData if needed
-      if ($info['method']) {
-          curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
-      }
-      // change curl method with a custom one (PUT, DELETE) if needed
-      if (isset($info['custom_request'])) {
-          curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $info['custom_request']);
-      }
+  // initiate our curl options
+  curl_setopt($curl, CURLOPT_URL, $apiAddress);
+  curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($curl, CURLOPT_POST, $info['method']);
+  // add postData if needed
+  if ($info['method']) {
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
+  }
+  // change curl method with a custom one (PUT, DELETE) if needed
+  if (isset($info['custom_request'])) {
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $info['custom_request']);
+  }
 
-      // execute curl and get status information
-      $curlResult = curl_exec($curl);
-      $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-      curl_close($curl);
+  // execute curl and get status information
+  $curlResult = curl_exec($curl);
+  $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  curl_close($curl);
 
-      if ($httpCode > 301) {
-          throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
-      }
+  if ($httpCode > 301) {
+    throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
+  }
 
-      return $curlResult;
+  return $curlResult;
 }
 ```
 
