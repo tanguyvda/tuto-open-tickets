@@ -180,7 +180,8 @@ So let's get started and hope for the best.
 ```php
 /*
 * Set default values for our rule form options
-* @return void
+*
+* @return {void}
 */
 protected function _setDefaultValueExtra() {
   $this->default_data['address'] = '10.30.2.2';
@@ -202,7 +203,7 @@ In order to get a better understanding of what we're doing, we are going to quic
 /*
 * Initiate your html configuration and let Smarty display it in the rule form
 *
-* @return void
+* @return {void}
 */
 protected function _getConfigContainer1Extra() {
   // initiate smarty and a few variables.
@@ -344,7 +345,7 @@ The reason is that, we've created the form, but never configured the save functi
 /*
 * Saves the rule form in the database
 *
-* @return void
+* @return {void}
 */
 protected function saveConfigExtra() {
   $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
@@ -406,8 +407,9 @@ But people may be blind, so we need to add an extra layer of security
   /*
   * Verify if every mandatory form field is filled with data
   *
-  * @return void
-  * @throw Exception
+  * @return {void}
+  *
+  * @throw \Exception when a form field is not set
   */
   protected function _checkConfigForm() {
     $this->_check_error_message = '';
@@ -499,7 +501,8 @@ Like we did at the beginning, we need to let people configure those parameters
 ```php
 /*
 * Set default values for our rule form options
-* @return void
+*
+* @return {void}
 */
 protected function _setDefaultValueExtra() {
   $this->default_data['address'] = '10.30.2.2';
@@ -538,7 +541,7 @@ we don't link it to our template one way or another.
 /*
 * Initiate your html configuration and let Smarty display it in the rule form
 *
-* @return void
+* @return {void}
 */
 protected function _getConfigContainer1Extra() {
 
@@ -653,6 +656,11 @@ Then, if you save the form and go back on it every ticket args should have disap
 This is easy to fix, we just need to add our ticket arguments to the save function that we've created earlier.
 
 ```php
+/*
+* Saves the rule form in the database
+*
+* @return {void}
+*/
 protected function saveConfigExtra() {
   $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
   $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
@@ -692,6 +700,11 @@ the value of the Urgency is not going to be gathered from Glpi but from a list c
 Here we add the Urgency in the rule configuration form in order to have it displayed when we open a ticket.
 
 ```php
+/*
+* Set default values for our rule form options
+*
+* @return {void}
+*/
 protected function _setDefaultValueMain() {
   parent::_setDefaultValueMain();
 
@@ -808,6 +821,11 @@ In order to have the GLPI_ENTITIES_TYPE correctly defined, we need to add this o
 To improve this listing we need to add the following code:
 
 ```php
+/*
+* Adds new types to the list of types
+*
+* @return {string} $str html code that add an option to a select
+*/
 protected function getGroupListOptions() {
   $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
 
@@ -868,6 +886,16 @@ work with smarty, PHP and ajax.
 The function is public because it is going to be called from outside of the class
 
 ```php
+/*
+* test if we can reach Glpi webservice with the given Configuration
+*
+* @param {array} $info required information to reach the glpi api
+*
+* @return {bool}
+*
+* throw \Exception if there are some missing parameters
+* throw \Exception if the connection failed
+*/
 static public function test($info) {
   // this is called through our javascript code. Those parameters are already checked in JS code.
   // but since this function is public, we check again because anyone could use this function
@@ -890,6 +918,16 @@ static public function test($info) {
 As you can see, every API related information is stored in a `$info` array.
 
 ```php
+/*
+* Get a session token from Glpi
+*
+* @param {array} $info required information to reach the glpi api
+*
+* @return {string} the session token
+*
+* throw \Exception if no api information has been found
+* throw \Exception if the connection failed
+*/
 static protected function initSession($info) {
   // check if we have our api informations
   if (empty($info)) {
@@ -915,6 +953,16 @@ static protected function initSession($info) {
   return $curlResult['session_token'];
 }
 
+/*
+* handle every query that we need to do
+*
+* @param {array} $info required information to reach the glpi api
+*
+* @return {object|json} $curlResult the json data gathered from glpi
+*
+* throw \Exception 10 if php-curl is not installed
+* throw \Exception 11 if glpi api fails
+*/
 static protected function curlQuery($info) {
   // check if php curl is installed
   if (!extension_loaded("curl")) {
@@ -1054,6 +1102,11 @@ If you are careful, you'll see that in the above code, we have a variable called
 And if you start to understand how our template engine works, we need to assign a value to this variable. To do so, jump back to the **_getConfigContainer1Extra** function and make sure you assign a value to **webServieUrl** like below
 
 ```php
+/*
+* Initiate your html configuration and let Smarty display it in the rule form
+*
+* @return {void}
+*/
 protected function _getConfigContainer1Extra() {
   // initiate smarty and a few variables.
   $tpl = new Smarty();
@@ -1076,6 +1129,14 @@ If everything is done correctly, we should have the following result in our rule
 Since we've created a way to get a session token, we can use it at our advantage to get entities from Glpi.
 
 ```php
+/*
+* get entities from glpi
+*
+* @return {bool}
+*
+* throw \Exception if we can't get a session token
+* throw \Exception if we can't get entities data
+*/
 protected function getEntities() {
 
   $info['address'] = $this->rule_data['address'];
@@ -1115,6 +1176,17 @@ Okay, now we have something that is able to retrieve entities from Glpi. We need
 following method, we're going to get all our entities information and put them inside a `$groups` variable after having filtered them.
 
 ```php
+/*
+* handle gathered entities
+*
+* @param {array} $entry
+* @params {array} $groups_order
+* @params {array} $groups
+*
+* @return {void}
+*
+* throw \Exception if we can't get entities from glpi
+*/
 protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
 
   // add a label to our entry
@@ -1177,6 +1249,16 @@ Well, in fact, we forgot one small step, we didn't create the code that will cre
 as we did for the **initSession** and **getEntities** we are going to write a **createTicket** method
 
 ```php
+/*
+* handle ticket creation in glpi
+*
+* @params {array} $ticketArguments contains all the ticket arguments
+*
+* @return {bool}
+*
+* throw \Exception if we can't get a session token
+* throw \Exception if we can't open a ticket
+*/
 protected function createTicket($ticketArguments) {
   $info['address'] = $this->rule_data['address'];
   $info['api_path'] = $this->rule_data['api_path'];
@@ -1224,6 +1306,18 @@ Now that we have a function that open a ticktet, it is required that we have a f
 to be called when we submit our ticket arguments from the widget. This function is called **doSubmit**
 
 ```php
+/*
+* brings all parameters together in order to build the ticket arguments and save
+* ticket data in the database
+*
+* @param {} $db_storage
+* @param {} $contact
+* @param {} $host_problems
+* @param {} $service_problems
+* @param {array} $extraTicketArguments
+*
+* @return {array} $result will tell us if the submit ticket action resulted in a ticket being opened
+*/
 protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
 
   // initiate a result array
@@ -1244,7 +1338,7 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
   $tpl->assign('host_selected', $host_problems);
   $tpl->assign('service_selected', $service_problems);
 
-  // assign submitted values from the widget to the template 
+  // assign submitted values from the widget to the template
   $this->assignSubmittedValues($tpl);
 
   $ticketArguments = $extraTicketArguments;
@@ -1284,6 +1378,11 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
 
 and here we check if every field is filled as expected.
 ```php
+/*
+* checks if all mandatory fields have been filled
+*
+* @return {array} telling us if there is a missing parameter
+*/
 public function validateFormatPopup() {
       $result = array('code' => 0, 'message' => 'ok');
 

@@ -330,7 +330,7 @@ class TutoGlpiProvider extends AbstractProvider {
     protected function assignSubmittedValueSelectMore($select_input_id, $selected_id) {
 
     }
-    
+
     /*
     * checks if all mandatory fields have been filled
     *
@@ -394,13 +394,13 @@ class TutoGlpiProvider extends AbstractProvider {
         }
 
         $this->saveHistory($db_storage, $result, array(
-        'contact' => $contact,
-        'host_problems' => $host_problems,
-        'service_problems' => $service_problems,
-        'ticket_value' => $this->glpiCallResult['response']['id'],
-        'subject' => $ticketArguments[self::ARG_TITLE],
-        'data_type' => self::DATA_TYPE_JSON,
-        'data' => json_encode($ticketArguments)
+            'contact' => $contact,
+            'host_problems' => $host_problems,
+            'service_problems' => $service_problems,
+            'ticket_value' => $this->glpiCallResult['response']['id'],
+            'subject' => $ticketArguments[self::ARG_TITLE],
+            'data_type' => self::DATA_TYPE_JSON,
+            'data' => json_encode($ticketArguments)
         ));
         return $result;
     }
