@@ -38,7 +38,7 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * Set default values for our rule form options
     *
-    * @return void
+    * @return {void}
     */
     protected function _setDefaultValueExtra() {
 
@@ -72,7 +72,7 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * Set default values for the widget popup when opening a ticket
     *
-    * @return void
+    * @return {void}
     */
     protected function _setDefaultValueMain($body_html = 0) {
         parent::_setDefaultValueMain();
@@ -130,8 +130,9 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * Verify if every mandatory form field is filled with data
     *
-    * @return void
-    * @throw Exception
+    * @return {void}
+    *
+    * @throw \Exception when a form field is not set
     */
     protected function _checkConfigForm() {
         $this->_check_error_message = '';
@@ -154,7 +155,7 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * Initiate your html configuration and let Smarty display it in the rule form
     *
-    * @return void
+    * @return {void}
     */
     protected function _getConfigContainer1Extra() {
         // initiate smarty and a few variables.
@@ -246,7 +247,7 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * Saves the rule form in the database
     *
-    * @return void
+    * @return {void}
     */
     protected function saveConfigExtra() {
         $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
@@ -263,7 +264,7 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * Adds new types to the list of types
     *
-    * @return string (html code that add an option to a select)
+    * @return {string} $str html code that add an option to a select
     */
     protected function getGroupListOptions() {
         $str = '<option value="' . self::GLPI_ENTITIES_TYPE . '">Glpi entities</option>';
@@ -272,6 +273,9 @@ class TutoGlpiProvider extends AbstractProvider {
 
     }
 
+    /*
+    *
+    */
     protected function assignOthers($entry, &$groups_order, &$groups) {
         if ($entry['Type'] == self::GLPI_ENTITIES_TYPE) {
             $this->assignGlpiEntities($entry, $groups_order, $groups);
@@ -282,6 +286,16 @@ class TutoGlpiProvider extends AbstractProvider {
 
     }
 
+    /*
+    * test if we can reach Glpi webservice with the given Configuration
+    *
+    * @param {array} $info required information to reach the glpi api
+    *
+    * @return {bool}
+    *
+    * throw \Exception if there are some missing parameters
+    * throw \Exception if the connection failed
+    */
     static public function test($info) {
         // this is called through our javascript code. Those parameters are already checked in JS code.
         // but since this function is public, we check again because anyone could use this function
@@ -301,6 +315,16 @@ class TutoGlpiProvider extends AbstractProvider {
         return true;
     }
 
+    /*
+    * Get a session token from Glpi
+    *
+    * @param {array} $info required information to reach the glpi api
+    *
+    * @return {string} the session token
+    *
+    * throw \Exception if no api information has been found
+    * throw \Exception if the connection failed
+    */
     static protected function initSession($info) {
       // check if we have our api informations
       if (empty($info)) {
@@ -326,6 +350,16 @@ class TutoGlpiProvider extends AbstractProvider {
       return $curlResult['session_token'];
     }
 
+    /*
+    * handle every query that we need to do
+    *
+    * @param {array} $info required information to reach the glpi api
+    *
+    * @return {object|json} $curlResult the json data gathered from glpi
+    *
+    * throw \Exception 10 if php-curl is not installed
+    * throw \Exception 11 if glpi api fails
+    */
     static protected function curlQuery($info) {
         // check if php curl is installed
         if (!extension_loaded("curl")) {
@@ -362,6 +396,17 @@ class TutoGlpiProvider extends AbstractProvider {
         return $curlResult;
     }
 
+    /*
+    * handle gathered entities
+    *
+    * @param {array} $entry
+    * @params {array} $groups_order
+    * @params {array} $groups
+    *
+    * @return {void}
+    *
+    * throw \Exception if we can't get entities from glpi
+    */
     protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
         $groups[$entry['Id']] = array(
             'label' => _($entry['Label']) .
@@ -377,9 +422,6 @@ class TutoGlpiProvider extends AbstractProvider {
         }
 
         $result = array();
-        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/glpiCallResult", "a") or die ("Unable to open file!");
-fwrite($file, print_r($this->glpiCallResult,true));
-fclose($file);
         foreach ($this->glpiCallResult['response']['myentities'] as $entity) {
             // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
             // inside the result array
@@ -399,6 +441,14 @@ fclose($file);
         $groups[$entry['Id']]['values'] = $result;
     }
 
+    /*
+    * get entities from glpi
+    *
+    * @return {bool}
+    *
+    * throw \Exception if we can't get a session token
+    * throw \Exception if we can't get entities data
+    */
     protected function getEntities() {
 
         $info['address'] = $this->rule_data['address'];
@@ -422,9 +472,6 @@ fclose($file);
             'Content-Type: application/json'
         );
 
-        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/entityCurl", "a") or die ("Unable to open file!");
-fwrite($file, print_r($this->curlQuery($info),true));
-fclose($file);
         // try to get entities from Glpi
         try {
             // the variable is going to be used outside of this method.
@@ -436,6 +483,16 @@ fclose($file);
         return true;
     }
 
+    /*
+    * handle ticket creation in glpi
+    *
+    * @params {array} $ticketArguments contains all the ticket arguments
+    *
+    * @return {bool}
+    *
+    * throw \Exception if we can't get a session token
+    * throw \Exception if we can't open a ticket
+    */
     protected function createTicket($ticketArguments) {
         $info['address'] = $this->rule_data['address'];
         $info['api_path'] = $this->rule_data['api_path'];
@@ -477,6 +534,18 @@ fclose($file);
         return 0;
     }
 
+    /*
+    * brings all parameters together in order to build the ticket arguments and save
+    * ticket data in the database
+    *
+    * @param {} $db_storage
+    * @param {} $contact
+    * @param {} $host_problems
+    * @param {} $service_problems
+    * @param {array} $extraTicketArguments
+    *
+    * @return {array} $result will tell us if the submit ticket action resulted in a ticket being opened
+    */
     protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
       $result = array(
         'ticket_id' => null,
@@ -526,6 +595,11 @@ fclose($file);
       return $result;
   }
 
+  /*
+  * checks if all mandatory fields have been filled
+  *
+  * @return {array} telling us if there is a missing parameter
+  */
   public function validateFormatPopup() {
         $result = array('code' => 0, 'message' => 'ok');
 
