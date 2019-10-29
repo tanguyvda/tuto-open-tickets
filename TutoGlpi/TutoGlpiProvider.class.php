@@ -278,15 +278,7 @@ class TutoGlpiProvider extends AbstractProvider {
         }
     }
 
-    public function validateFormatPopup() {
-
-    }
-
     protected function assignSubmittedValueSelectMore($select_input_id, $selected_id) {
-
-    }
-
-    protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extra_ticket_arguments=array()) {
 
     }
 
@@ -443,4 +435,103 @@ fclose($file);
 
         return true;
     }
+
+    protected function createTicket($ticketArguments) {
+        $info['address'] = $this->rule_data['address'];
+        $info['api_path'] = $this->rule_data['api_path'];
+        $info['user_token'] = $this->rule_data['user_token'];
+        $info['app_token'] = $this->rule_data['app_token'];
+
+        // get a session token
+        try {
+            $sessionToken = $this->initSession($info);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage(), $e->getCode());
+        }
+
+        // add the api endpoint and method to our info array
+        $info['query_endpoint'] = '/Ticket';
+        $info['method'] = 1;
+        // set headers
+        $info['headers'] = array(
+            'App-Token: ' . $info['app_token'],
+            'Session-Token: ' . $sessionToken,
+            'Content-Type: application/json'
+        );
+
+        $fields['input'] = array(
+            'name' => $ticketArguments['title'],
+            'content' => $ticketArguments['content'],
+            'entities_id' => $ticketArguments['entity'],
+            'urgency' => $ticketArguments['urgency']
+        );
+
+        $info['postFields'] = json_encode($fields);
+
+        try {
+            $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage(), $e->getCode());
+        }
+
+        return 0;
+    }
+
+    protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
+      $result = array(
+        'ticket_id' => null,
+        'ticket_error_message' => null,
+        'ticket_is_ok' => 0,
+        'ticket_time' => time()
+      );
+
+      $tpl = new Smarty();
+      $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/Abstract/templates',
+        $this->_centreon_path);
+
+      $tpl->assign('centreon_open_tickets_path', $this->_centreon_open_tickets_path);
+      $tpl->assign('user', $contact);
+      $tpl->assign('host_selected', $host_problems);
+      $tpl->assign('service_selected', $service_problems);
+      $this->assignSubmittedValues($tpl);
+
+      $ticketArguments = $extraTicketArguments;
+      if (isset($this->rule_data['clones']['mappingTicket'])) {
+        foreach ($this->rule_data['clones']['mappingTicket'] as $value) {
+          $tpl->assign('string', $value['Value']);
+          $resultString = $tpl->fetch('eval.ihtml');
+          if ($resultString == '') {
+            $resultstring = null;
+          }
+          $ticketArguments[$this->_internal_arg_name[$value['Arg']]] = $resultString;
+        }
+      }
+
+      try {
+        $this->createTicket($ticketArguments);
+      } catch (\Exception $e) {
+        $result['ticket_error_message'] = $e->getMessage();
+        return $result;
+      }
+
+      $this->saveHistory($db_storage, $result, array(
+        'contact' => $contact,
+        'host_problems' => $host_problems,
+        'service_problems' => $service_problems,
+        'ticket_value' => $this->glpiCallResult['response']['id'],
+        'subject' => $ticketArguments[self::ARG_TITLE],
+        'data_type' => self::DATA_TYPE_JSON,
+        'data' => json_encode($ticketArguments)
+      ));
+      return $result;
+  }
+
+  public function validateFormatPopup() {
+        $result = array('code' => 0, 'message' => 'ok');
+
+        $this->validateFormatPopupLists($result);
+
+        return $result;
+    }
+
 }

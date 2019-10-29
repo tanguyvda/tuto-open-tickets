@@ -1157,4 +1157,122 @@ protected function assignOthers($entry, &$groups_order, &$groups) {
 ```
 
 At this point, we should have a nice widget that looks like this:
-![widget with entiteis](images/widget-with-entities.gif)
+![widget with entities](images/widget-with-entities.gif)
+
+## OPENING OUR FIRST TICKET <a name="opening-our-first-ticket"></a>
+This is it, we've made it, we are now ready (this is a lie) to open our first ticket.
+Well, in fact, we forgot one small step, we didn't create the code that will create the ticket.
+
+### Create ticket function <a name="create-ticket-function"></a>
+as we did for the **initSession** and **getEntities** we are going to write a **createTicket** method
+
+```php
+protected function createTicket($ticketArguments) {
+  $info['address'] = $this->rule_data['address'];
+  $info['api_path'] = $this->rule_data['api_path'];
+  $info['user_token'] = $this->rule_data['user_token'];
+  $info['app_token'] = $this->rule_data['app_token'];
+
+  // get a session token
+  try {
+    $sessionToken = $this->initSession($info);
+  } catch (\Exception $e) {
+    throw new \Exception($e->getMessage(), $e->getCode());
+  }
+
+  // add the api endpoint and method to our info array
+  $info['query_endpoint'] = '/Ticket';
+  $info['method'] = 1;
+  // set headers
+  $info['headers'] = array(
+    'App-Token: ' . $info['app_token'],
+    'Session-Token: ' . $sessionToken,
+    'Content-Type: application/json'
+  );
+
+  $fields['input'] = array(
+    'name' => $ticketArguments['title'],
+    'content' => $ticketArguments['content'],
+    'entities_id' => $ticketArguments['entity'],
+    'urgency' => $ticketArguments['urgency']
+  );
+
+  $info['postFields'] = json_encode($fields);
+
+  try {
+    $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
+  } catch (\Exception $e) {
+    throw new \Exception($e->getMessage(), $e->getCode());
+  }
+
+  return true;
+}
+```
+### Open a ticket from the widget <a name="open-a-ticket-from-the-widget"></a>
+Now that we have a function that open a ticktet, it is required that we have a function that is going
+to be called when we submit our ticket arguments from the widget. This function is called **doSubmit**
+
+```php
+protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
+  $result = array(
+    'ticket_id' => null,
+    'ticket_error_message' => null,
+    'ticket_is_ok' => 0,
+    'ticket_time' => time()
+  );
+
+  $tpl = new Smarty();
+  $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/Abstract/templates',
+    $this->_centreon_path);
+
+  $tpl->assign('centreon_open_tickets_path', $this->_centreon_open_tickets_path);
+  $tpl->assign('user', $contact);
+  $tpl->assign('host_selected', $host_problems);
+  $tpl->assign('service_selected', $service_problems);
+  $this->assignSubmittedValues($tpl);
+
+  $ticketArguments = $extraTicketArguments;
+  if (isset($this->rule_data['clones']['mappingTicket'])) {
+    foreach ($this->rule_data['clones']['mappingTicket'] as $value) {
+      $tpl->assign('string', $value['Value']);
+      $resultString = $tpl->fetch('eval.ihtml');
+      if ($resultString == '') {
+        $resultstring = null;
+      }
+      $ticketArguments[$this->_internal_arg_name[$value['Arg']]] = $resultString;
+    }
+  }
+
+  try {
+    $this->createTicket($ticketArguments);
+  } catch (\Exception $e) {
+    $result['ticket_error_message'] = $e->getMessage();
+    return $result;
+  }
+
+  $this->saveHistory($db_storage, $result, array(
+    'contact' => $contact,
+    'ticket_value' => $this->glpiCallResult['response']['id'],
+    'subject' => $ticketArguments[self::ARG_TITLE],
+    'host_problems' => $host_problems,
+    'service_problems' => $service_problems,
+    'data_type' => self::DATA_TYPE_JSON,
+    'data' => json_encode($ticketArguments)
+  ));
+  return $result;
+}
+```
+
+and here we use the popup method
+```php
+public function validateFormatPopup() {
+      $result = array('code' => 0, 'message' => 'ok');
+
+      $this->validateFormatPopupLists($result);
+
+      return $result;
+}
+```
+
+at this point, you should be able to open ticket
+![first ticket](images/first-ticket.gif)
