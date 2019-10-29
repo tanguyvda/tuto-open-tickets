@@ -1243,6 +1243,8 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
   $tpl->assign('user', $contact);
   $tpl->assign('host_selected', $host_problems);
   $tpl->assign('service_selected', $service_problems);
+
+  // assign submitted values from the widget to the template 
   $this->assignSubmittedValues($tpl);
 
   $ticketArguments = $extraTicketArguments;
@@ -1280,7 +1282,7 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
 }
 ```
 
-and here we check if every field is filled as expected. 
+and here we check if every field is filled as expected.
 ```php
 public function validateFormatPopup() {
       $result = array('code' => 0, 'message' => 'ok');
