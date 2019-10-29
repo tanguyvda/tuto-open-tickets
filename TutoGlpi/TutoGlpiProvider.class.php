@@ -273,7 +273,9 @@ class TutoGlpiProvider extends AbstractProvider {
     }
 
     protected function assignOthers($entry, &$groups_order, &$groups) {
-
+        if ($entry['Type'] == self::GLPI_ENTITIES_TYPE) {
+            $this->assignGlpiEntities($entry, $groups_order, $groups);
+        }
     }
 
     public function validateFormatPopup() {
@@ -329,7 +331,7 @@ class TutoGlpiProvider extends AbstractProvider {
         throw new Exception($e->getMessage(), $e->getCode());
       }
 
-      return $curlResult;
+      return $curlResult['session_token'];
     }
 
     static protected function curlQuery($info) {
@@ -368,4 +370,77 @@ class TutoGlpiProvider extends AbstractProvider {
         return $curlResult;
     }
 
+    protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
+        $groups[$entry['Id']] = array(
+            'label' => _($entry['Label']) .
+                (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '' )
+            );
+        $groups_order[] = $entry['Id'];
+
+        try {
+            $this->getEntities();
+        } catch (\Exception $e) {
+            $groups[$entry['Id']]['code'] = -1;
+            $groups[$entry['Id']]['msg_error'] = $e->getMessage();
+        }
+
+        $result = array();
+        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/glpiCallResult", "a") or die ("Unable to open file!");
+fwrite($file, print_r($this->glpiCallResult,true));
+fclose($file);
+        foreach ($this->glpiCallResult['response']['myentities'] as $entity) {
+            // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
+            // inside the result array
+            if (!isset($entry['Filter']) || is_null($entry['Filter']) || $entry['Filter'] == '') {
+                $result[$entity['id']] = $this->to_utf8($entity['name']);
+                continue;
+            }
+
+            // if we do have have a filter, we make sure that the match the filter, if so, we put the name and the id
+            // of the entity inside the result array
+            if (preg_match('/' . $entry['Filter'] . '/', $entity['name'])) {
+                $result[$entity['id']] = $this->to_utf8($entity['name']);
+            }
+        }
+
+        $this->saveSession('glpi_entities', $this->glpiCallResult['response']);
+        $groups[$entry['Id']]['values'] = $result;
+    }
+
+    protected function getEntities() {
+
+        $info['address'] = $this->rule_data['address'];
+        $info['api_path'] = $this->rule_data['api_path'];
+        $info['user_token'] = $this->rule_data['user_token'];
+        $info['app_token'] = $this->rule_data['app_token'];
+        // get a session token
+        try {
+            $sessionToken = $this->initSession($info);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage(), $e->getCode());
+        }
+
+        // add the api endpoint and method to our info array
+        $info['query_endpoint'] = '/getMyEntities/?is_recursive=1';
+        $info['method'] = 0;
+        // set headers
+        $info['headers'] = array(
+            'App-Token: ' . $info['app_token'],
+            'Session-Token: ' . $sessionToken,
+            'Content-Type: application/json'
+        );
+
+        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/entityCurl", "a") or die ("Unable to open file!");
+fwrite($file, print_r($this->curlQuery($info),true));
+fclose($file);
+        // try to get entities from Glpi
+        try {
+            // the variable is going to be used outside of this method.
+            $this->glpiCallResult['response'] = json_decode($this->curlQuery($info), true);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage(), $e->getCode());
+        }
+
+        return true;
+    }
 }
