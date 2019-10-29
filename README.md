@@ -18,6 +18,10 @@
 7. [GATHER TICKET ARGUMENTS FROM THE TICKETING SOFTWARE](#gather-ticket-arguments-from-the-ticketing-software)
     - [Code structure](#code-structure)
     - [Test the API connection](#test-the-api-connection)
+    - [Get entities from Glpi](#get-entities-from-glpi)
+8. [OPENING OUR FIRST TICKET](#opening-our-first-ticket)
+    - [Create ticket function](#create-ticket-function)
+    - [Open a ticket from the widget](#open-a-ticket-from-the-widget)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
