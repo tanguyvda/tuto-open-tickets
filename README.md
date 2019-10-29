@@ -1111,17 +1111,22 @@ protected function getEntities() {
 }
 ```
 
-Okay, now we have something that is able to retrive entities from Glpi. We need to call it now. In the
+Okay, now we have something that is able to retrieve entities from Glpi. We need to call it now. In the
 following method, we're going to get all our entities information and put them inside a `$groups` variable after having filtered them.
 
 ```php
 protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
+
+  // add a label to our entry
   $groups[$entry['Id']] = array(
     'label' => _($entry['Label']) .
-      (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '' )
+      (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '')
   );
+
+  // adds our entry in the group order array
   $groups_order[] = $entry['Id'];
 
+  // try to get entities
   try {
     $this->getEntities();
   } catch (\Exception $e) {
@@ -1154,6 +1159,7 @@ Ultimately, we just need to create the entity type. We've talked about the custo
 
 ```php
 protected function assignOthers($entry, &$groups_order, &$groups) {
+  // if the entry type is GLPI_ENTITIES_TYPE then we are going to configure it
   if ($entry['Type'] == self::GLPI_ENTITIES_TYPE) {
     $this->assignGlpiEntities($entry, $groups_order, $groups);
   }
@@ -1194,15 +1200,16 @@ protected function createTicket($ticketArguments) {
     'Content-Type: application/json'
   );
 
+  // prepare the required post fields to create a ticket
   $fields['input'] = array(
     'name' => $ticketArguments['title'],
     'content' => $ticketArguments['content'],
     'entities_id' => $ticketArguments['entity'],
     'urgency' => $ticketArguments['urgency']
   );
-
   $info['postFields'] = json_encode($fields);
 
+  // try to open a new ticket through the glpi api
   try {
     $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
   } catch (\Exception $e) {
@@ -1218,6 +1225,8 @@ to be called when we submit our ticket arguments from the widget. This function 
 
 ```php
 protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
+
+  // initiate a result array
   $result = array(
     'ticket_id' => null,
     'ticket_error_message' => null,
@@ -1225,6 +1234,7 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
     'ticket_time' => time()
   );
 
+  // initiate smarty variables
   $tpl = new Smarty();
   $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/Abstract/templates',
     $this->_centreon_path);
@@ -1237,6 +1247,7 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
 
   $ticketArguments = $extraTicketArguments;
   if (isset($this->rule_data['clones']['mappingTicket'])) {
+    // for each ticket argument in the rule form, we retrieve its value
     foreach ($this->rule_data['clones']['mappingTicket'] as $value) {
       $tpl->assign('string', $value['Value']);
       $resultString = $tpl->fetch('eval.ihtml');
@@ -1247,6 +1258,7 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
     }
   }
 
+  // we try to open the ticket
   try {
     $this->createTicket($ticketArguments);
   } catch (\Exception $e) {
@@ -1254,6 +1266,7 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
     return $result;
   }
 
+  // we save ticket data in our database
   $this->saveHistory($db_storage, $result, array(
     'contact' => $contact,
     'ticket_value' => $this->glpiCallResult['response']['id'],
@@ -1267,11 +1280,12 @@ protected function doSubmit($db_storage, $contact, $host_problems, $service_prob
 }
 ```
 
-and here we use the popup method
+and here we check if every field is filled as expected. 
 ```php
 public function validateFormatPopup() {
       $result = array('code' => 0, 'message' => 'ok');
 
+      // checks if every mandatory field is filled
       $this->validateFormatPopupLists($result);
 
       return $result;
