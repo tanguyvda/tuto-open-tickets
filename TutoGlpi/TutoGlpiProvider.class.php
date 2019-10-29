@@ -282,9 +282,129 @@ class TutoGlpiProvider extends AbstractProvider {
         }
     }
 
+    /*
+    * handle gathered entities
+    *
+    * @param {array} $entry
+    * @params {array} $groups_order
+    * @params {array} $groups
+    *
+    * @return {void}
+    *
+    * throw \Exception if we can't get entities from glpi
+    */
+    protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
+        $groups[$entry['Id']] = array(
+            'label' => _($entry['Label']) .
+            (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '' )
+        );
+        $groups_order[] = $entry['Id'];
+
+        try {
+            $this->getEntities();
+        } catch (\Exception $e) {
+            $groups[$entry['Id']]['code'] = -1;
+            $groups[$entry['Id']]['msg_error'] = $e->getMessage();
+        }
+
+        $result = array();
+        foreach ($this->glpiCallResult['response']['myentities'] as $entity) {
+            // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
+            // inside the result array
+            if (!isset($entry['Filter']) || is_null($entry['Filter']) || $entry['Filter'] == '') {
+                $result[$entity['id']] = $this->to_utf8($entity['name']);
+                continue;
+            }
+
+            // if we do have have a filter, we make sure that the match the filter, if so, we put the name and the id
+            // of the entity inside the result array
+            if (preg_match('/' . $entry['Filter'] . '/', $entity['name'])) {
+                $result[$entity['id']] = $this->to_utf8($entity['name']);
+            }
+        }
+
+        $this->saveSession('glpi_entities', $this->glpiCallResult['response']);
+        $groups[$entry['Id']]['values'] = $result;
+    }
+
     protected function assignSubmittedValueSelectMore($select_input_id, $selected_id) {
 
     }
+    
+    /*
+    * checks if all mandatory fields have been filled
+    *
+    * @return {array} telling us if there is a missing parameter
+    */
+    public function validateFormatPopup() {
+        $result = array('code' => 0, 'message' => 'ok');
+
+        $this->validateFormatPopupLists($result);
+
+        return $result;
+    }
+
+    /*
+    * brings all parameters together in order to build the ticket arguments and save
+    * ticket data in the database
+    *
+    * @param {} $db_storage
+    * @param {} $contact
+    * @param {} $host_problems
+    * @param {} $service_problems
+    * @param {array} $extraTicketArguments
+    *
+    * @return {array} $result will tell us if the submit ticket action resulted in a ticket being opened
+    */
+    protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
+        $result = array(
+            'ticket_id' => null,
+            'ticket_error_message' => null,
+            'ticket_is_ok' => 0,
+            'ticket_time' => time()
+        );
+
+        $tpl = new Smarty();
+        $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/Abstract/templates',
+        $this->_centreon_path);
+
+        $tpl->assign('centreon_open_tickets_path', $this->_centreon_open_tickets_path);
+        $tpl->assign('user', $contact);
+        $tpl->assign('host_selected', $host_problems);
+        $tpl->assign('service_selected', $service_problems);
+        $this->assignSubmittedValues($tpl);
+
+        $ticketArguments = $extraTicketArguments;
+        if (isset($this->rule_data['clones']['mappingTicket'])) {
+            foreach ($this->rule_data['clones']['mappingTicket'] as $value) {
+                $tpl->assign('string', $value['Value']);
+                $resultString = $tpl->fetch('eval.ihtml');
+                if ($resultString == '') {
+                    $resultstring = null;
+                }
+                $ticketArguments[$this->_internal_arg_name[$value['Arg']]] = $resultString;
+            }
+        }
+
+        try {
+            $this->createTicket($ticketArguments);
+        } catch (\Exception $e) {
+            $result['ticket_error_message'] = $e->getMessage();
+            return $result;
+        }
+
+        $this->saveHistory($db_storage, $result, array(
+        'contact' => $contact,
+        'host_problems' => $host_problems,
+        'service_problems' => $service_problems,
+        'ticket_value' => $this->glpiCallResult['response']['id'],
+        'subject' => $ticketArguments[self::ARG_TITLE],
+        'data_type' => self::DATA_TYPE_JSON,
+        'data' => json_encode($ticketArguments)
+        ));
+        return $result;
+    }
+
 
     /*
     * test if we can reach Glpi webservice with the given Configuration
@@ -326,28 +446,28 @@ class TutoGlpiProvider extends AbstractProvider {
     * throw \Exception if the connection failed
     */
     static protected function initSession($info) {
-      // check if we have our api informations
-      if (empty($info)) {
-        throw new \Exception('no API parameters found.', 12);
-      }
+        // check if we have our api informations
+        if (empty($info)) {
+            throw new \Exception('no API parameters found.', 12);
+        }
 
-      // add the api endpoint and method to our info array
-      $info['query_endpoint'] = '/initSession';
-      $info['method'] = 0;
-      // set headers
-      $info['headers'] = array(
-        'App-Token: ' . $info['app_token'],
-        'Authorization: user_token ' . $info['user_token'],
-        'Content-Type: application/json'
-      );
-      // try to call the rest api
-      try {
-        $curlResult = json_decode(self::curlQuery($info), true);
-      } catch (\Exception $e) {
-        throw new Exception($e->getMessage(), $e->getCode());
-      }
+        // add the api endpoint and method to our info array
+        $info['query_endpoint'] = '/initSession';
+        $info['method'] = 0;
+        // set headers
+        $info['headers'] = array(
+            'App-Token: ' . $info['app_token'],
+            'Authorization: user_token ' . $info['user_token'],
+            'Content-Type: application/json'
+        );
+        // try to call the rest api
+        try {
+            $curlResult = json_decode(self::curlQuery($info), true);
+        } catch (\Exception $e) {
+            throw new Exception($e->getMessage(), $e->getCode());
+        }
 
-      return $curlResult['session_token'];
+        return $curlResult['session_token'];
     }
 
     /*
@@ -396,50 +516,6 @@ class TutoGlpiProvider extends AbstractProvider {
         return $curlResult;
     }
 
-    /*
-    * handle gathered entities
-    *
-    * @param {array} $entry
-    * @params {array} $groups_order
-    * @params {array} $groups
-    *
-    * @return {void}
-    *
-    * throw \Exception if we can't get entities from glpi
-    */
-    protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
-        $groups[$entry['Id']] = array(
-            'label' => _($entry['Label']) .
-                (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '' )
-            );
-        $groups_order[] = $entry['Id'];
-
-        try {
-            $this->getEntities();
-        } catch (\Exception $e) {
-            $groups[$entry['Id']]['code'] = -1;
-            $groups[$entry['Id']]['msg_error'] = $e->getMessage();
-        }
-
-        $result = array();
-        foreach ($this->glpiCallResult['response']['myentities'] as $entity) {
-            // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
-            // inside the result array
-            if (!isset($entry['Filter']) || is_null($entry['Filter']) || $entry['Filter'] == '') {
-                $result[$entity['id']] = $this->to_utf8($entity['name']);
-                continue;
-            }
-
-            // if we do have have a filter, we make sure that the match the filter, if so, we put the name and the id
-            // of the entity inside the result array
-            if (preg_match('/' . $entry['Filter'] . '/', $entity['name'])) {
-                $result[$entity['id']] = $this->to_utf8($entity['name']);
-            }
-        }
-
-        $this->saveSession('glpi_entities', $this->glpiCallResult['response']);
-        $groups[$entry['Id']]['values'] = $result;
-    }
 
     /*
     * get entities from glpi
@@ -534,78 +610,5 @@ class TutoGlpiProvider extends AbstractProvider {
         return 0;
     }
 
-    /*
-    * brings all parameters together in order to build the ticket arguments and save
-    * ticket data in the database
-    *
-    * @param {} $db_storage
-    * @param {} $contact
-    * @param {} $host_problems
-    * @param {} $service_problems
-    * @param {array} $extraTicketArguments
-    *
-    * @return {array} $result will tell us if the submit ticket action resulted in a ticket being opened
-    */
-    protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
-      $result = array(
-        'ticket_id' => null,
-        'ticket_error_message' => null,
-        'ticket_is_ok' => 0,
-        'ticket_time' => time()
-      );
-
-      $tpl = new Smarty();
-      $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/Abstract/templates',
-        $this->_centreon_path);
-
-      $tpl->assign('centreon_open_tickets_path', $this->_centreon_open_tickets_path);
-      $tpl->assign('user', $contact);
-      $tpl->assign('host_selected', $host_problems);
-      $tpl->assign('service_selected', $service_problems);
-      $this->assignSubmittedValues($tpl);
-
-      $ticketArguments = $extraTicketArguments;
-      if (isset($this->rule_data['clones']['mappingTicket'])) {
-        foreach ($this->rule_data['clones']['mappingTicket'] as $value) {
-          $tpl->assign('string', $value['Value']);
-          $resultString = $tpl->fetch('eval.ihtml');
-          if ($resultString == '') {
-            $resultstring = null;
-          }
-          $ticketArguments[$this->_internal_arg_name[$value['Arg']]] = $resultString;
-        }
-      }
-
-      try {
-        $this->createTicket($ticketArguments);
-      } catch (\Exception $e) {
-        $result['ticket_error_message'] = $e->getMessage();
-        return $result;
-      }
-
-      $this->saveHistory($db_storage, $result, array(
-        'contact' => $contact,
-        'host_problems' => $host_problems,
-        'service_problems' => $service_problems,
-        'ticket_value' => $this->glpiCallResult['response']['id'],
-        'subject' => $ticketArguments[self::ARG_TITLE],
-        'data_type' => self::DATA_TYPE_JSON,
-        'data' => json_encode($ticketArguments)
-      ));
-      return $result;
-  }
-
-  /*
-  * checks if all mandatory fields have been filled
-  *
-  * @return {array} telling us if there is a missing parameter
-  */
-  public function validateFormatPopup() {
-        $result = array('code' => 0, 'message' => 'ok');
-
-        $this->validateFormatPopupLists($result);
-
-        return $result;
-    }
 
 }
