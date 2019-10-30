@@ -274,20 +274,34 @@ class TutoGlpiProvider extends AbstractProvider {
     }
 
     /*
+    * configure variables with the data provided by the glpi api
     *
+    * @param {array} $entry ticket argument configuration information
+    * @param {array} $groups_order order of the ticket arguments
+    * @param {array} $groups store the data gathered from glpi
+    *
+    * @return {void}
     */
     protected function assignOthers($entry, &$groups_order, &$groups) {
+
         if ($entry['Type'] == self::GLPI_ENTITIES_TYPE) {
             $this->assignGlpiEntities($entry, $groups_order, $groups);
+
+            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/groups_order", "a") or die ("Unable to open file!");
+            fwrite($file, print_r($groups_order,true));
+            fclose($file);
+            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/groups", "a") or die ("Unable to open file!");
+            fwrite($file, print_r($groups,true));
+            fclose($file);
         }
     }
 
     /*
     * handle gathered entities
     *
-    * @param {array} $entry
-    * @params {array} $groups_order
-    * @params {array} $groups
+    * @param {array} $entry ticket argument configuration information
+    * @param {array} $groups_order order of the ticket arguments
+    * @param {array} $groups store the data gathered from glpi
     *
     * @return {void}
     *
@@ -308,6 +322,31 @@ class TutoGlpiProvider extends AbstractProvider {
         }
 
         $result = array();
+        /* this is what is inside $this->glpiCallResult['response'] at this point
+        { "myentities": [
+            {
+              "id": 1,
+              "name": "Root entity > Amazing Platform"
+            },
+            {
+              "id": 2,
+              "name": "Root entity > Centreon"
+            },
+            {
+              "id": 3,
+              "name": "Root entity > Cluster"
+            },
+            {
+              "id": 4,
+              "name": "Root entity > Databases"
+            },
+            {
+              "id": 0,
+              "name": "Root entity"
+            }
+          ]
+        }
+        */
         foreach ($this->glpiCallResult['response']['myentities'] as $entity) {
             // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
             // inside the result array
@@ -348,10 +387,10 @@ class TutoGlpiProvider extends AbstractProvider {
     * brings all parameters together in order to build the ticket arguments and save
     * ticket data in the database
     *
-    * @param {} $db_storage
-    * @param {} $contact
-    * @param {} $host_problems
-    * @param {} $service_problems
+    * @param {object} $db_storage centreon storage database informations
+    * @param {array} $contact centreon contact informations
+    * @param {array} $host_problems centreon host information
+    * @param {array} $service_problems centreon service information
     * @param {array} $extraTicketArguments
     *
     * @return {array} $result will tell us if the submit ticket action resulted in a ticket being opened
@@ -363,7 +402,6 @@ class TutoGlpiProvider extends AbstractProvider {
             'ticket_is_ok' => 0,
             'ticket_time' => time()
         );
-
         $tpl = new Smarty();
         $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/Abstract/templates',
         $this->_centreon_path);

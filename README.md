@@ -1172,16 +1172,63 @@ protected function getEntities() {
 }
 ```
 
-Okay, now we have something that is able to retrieve entities from Glpi. We need to call it now. In the
-following method, we're going to get all our entities information and put them inside a `$groups` variable after having filtered them.
+Okay, now we have something that is able to retrieve entities from Glpi. We need to call it now.
+
+In the following method, we are going to link data from our configuration form and from what Glpi is going to give us.
+This time, we're going to use three variables that are not very clear when you read them so here is quick explanation
+and how they look like.
+
+- $entry, you should see that it matches your configuration form with the mandatory, filter, sort options and such
+```php
+Array
+(
+  [Id] => glpi_entity
+  [Label] => Entity
+  [Type] => 10
+  [Filter] =>
+  [Mandatory] =>
+  [Sort] =>
+)
+```
+
+- $groups_order, just to order your arguments (not very clear since we only have the entity)
+
+```php
+  Array
+  (
+    [0] => glpi_entity
+  )
+```
+
+- $groups, you should notice that it contains data retrieved from Glpi (we are going to get them now)
+
+```php
+Array
+(
+  [glpi_entity] => Array
+  (
+    [label] => Entity
+    [values] => Array
+    (
+      [1] => Root entity > Amazing Platform
+      [2] => Root entity > Centreon
+      [3] => Root entity > Cluster
+      [4] => Root entity > Databases
+      [0] => Root entity
+    )
+
+  )
+
+)
+```
 
 ```php
 /*
 * handle gathered entities
 *
-* @param {array} $entry
-* @params {array} $groups_order
-* @params {array} $groups
+* @param {array} $entry ticket argument configuration information
+* @param {array} $groups_order order of the ticket arguments
+* @param {array} $groups store the data gathered from glpi
 *
 * @return {void}
 *
@@ -1207,6 +1254,31 @@ protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
   }
 
   $result = array();
+  /* this is what is inside $this->glpiCallResult['response'] at this point
+    { "myentities": [
+        {
+          "id": 1,
+          "name": "Root entity > Amazing Platform"
+        },
+        {
+          "id": 2,
+          "name": "Root entity > Centreon"
+        },
+        {
+          "id": 3,
+          "name": "Root entity > Cluster"
+        },
+        {
+          "id": 4,
+          "name": "Root entity > Databases"
+        },
+        {
+          "id": 0,
+          "name": "Root entity"
+        }
+      ]
+    }
+  */
   foreach ($this->glpiCallResult['response']['myentities'] as $entity) {
     // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
     // inside the result array
@@ -1227,9 +1299,18 @@ protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
 }
 ```
 
-Ultimately, we just need to create the entity type. We've talked about the custom type, host group type and such, and we said that we will see the entity type later on and here we are.
+
 
 ```php
+/*
+* configure variables with the data provided by the glpi api
+*
+* @param {array} $entry ticket argument configuration information
+* @param {array} $groups_order order of the ticket arguments
+* @param {array} $groups store the data gathered from glpi
+*
+* @return {void}
+*/
 protected function assignOthers($entry, &$groups_order, &$groups) {
   // if the entry type is GLPI_ENTITIES_TYPE then we are going to configure it
   if ($entry['Type'] == self::GLPI_ENTITIES_TYPE) {
@@ -1310,10 +1391,10 @@ to be called when we submit our ticket arguments from the widget. This function 
 * brings all parameters together in order to build the ticket arguments and save
 * ticket data in the database
 *
-* @param {} $db_storage
-* @param {} $contact
-* @param {} $host_problems
-* @param {} $service_problems
+* @param {object} $db_storage centreon storage database informations
+* @param {array} $contact centreon contact informations
+* @param {array} $host_problems centreon host information
+* @param {array} $service_problems centreon service information
 * @param {array} $extraTicketArguments
 *
 * @return {array} $result will tell us if the submit ticket action resulted in a ticket being opened
