@@ -22,6 +22,7 @@
 8. [OPENING OUR FIRST TICKET](#opening-our-first-ticket)
     - [Create ticket function](#create-ticket-function)
     - [Open a ticket from the widget](#open-a-ticket-from-the-widget)
+9. [CLOSING A TICKET](#closing-a-ticket)
     - [Enabling advanced close mode](#enabling-advanced-close-mode)
     - [Activating the close function on the PHP side](#activating-the-close-function-on-the-php-side)
 
@@ -1479,7 +1480,7 @@ public function validateFormatPopup() {
 at this point, you should be able to open ticket
 ![first ticket](images/first-ticket.gif)
 
-## CLOSING A TICKET <a name="closing-a-ticket"
+## CLOSING A TICKET <a name="closing-a-ticket"></a>
 One step at a time, we finally opened our ticket. Let's try to close it now.
 
 ### Enabling advanced close mode <a name="enabling-advanced-close-mode"></a>
