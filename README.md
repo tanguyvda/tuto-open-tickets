@@ -1476,3 +1476,111 @@ public function validateFormatPopup() {
 
 at this point, you should be able to open ticket
 ![first ticket](images/first-ticket.gif)
+
+## CLOSING A TICKET <a name="closing-a-ticket"
+One step at a time, we finally opened our ticket. Let's try to close it now.
+
+### Enabling advanced close mode <a name="enabling-advanced-close-mode"></a>
+There is an advanced close mode for our tickets, and we're going to enable it. To do so, at the beginning of our class,
+add the following statement
+
+```php
+class TutoGlpiProvider extends AbstractProvider {
+  protected $_close_advanced = 1;
+
+  // ... code ... //
+}
+```
+
+in your rule form, at the bottom, you should now have the following options:
+![enable close ticket](images/enable_close_ticket.png)
+
+**Don't forget to tick the enable option**
+
+### Activating the close function on the PHP side <a name="activating-the-close-function-on-the-php-side"></a>
+At the moment, if we try to close at ticket with a widget that is configured to handle this, we should have something like that
+
+![fail close](images/fail_close.png)
+
+The popup that doesn't show up the ticket id that i've closed is a sign of either a bug in the code, or in our case, no code
+at all.
+
+First of all, let's create a closeTicketGlpi function
+
+```php
+/*
+* close a ticket in Glpi
+*
+* @params {string} $ticketId the ticket id
+*
+* @return {bool}
+*
+* throw \Exception if it can't get a session token
+* throw \Exception if it can't close the ticket
+*/
+protected function closeTicketGlpi($ticketId) {
+  $info['address'] = $this->rule_data['address'];
+  $info['api_path'] = $this->rule_data['api_path'];
+  $info['user_token'] = $this->rule_data['user_token'];
+  $info['app_token'] = $this->rule_data['app_token'];
+
+  try {
+    $sessionToken = $this->initSession($info);
+  } catch (\Exception $e) {
+    throw new \Exception($e->getMessage(), $e-getCode());
+  }
+
+  // add the api endpoint and method to our info array
+  $info['query_endpoint'] = '/Ticket/' . $ticketId;
+  $info['method'] = 1;
+  $info['custom_request'] = 'PUT';
+  // set headers
+  $info['headers'] = array(
+    'App-Token: ' . $info['app_token'],
+    'Session-Token: ' . $sessionToken,
+    'Content-Type: application/json'
+  );
+
+  // status 6 = closed ticket
+  $fields['input'] = array(
+    'status' => 6
+  );
+
+  $info['postFields'] = json_encode($fields);
+
+  try {
+    $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
+  } catch (\Exception $e) {
+    throw new \Exception($e->getMessage(), $e->getCode());
+  }
+
+  return 0;
+}
+```
+
+Now we need to call the function we created, and to do so, we are going to use the closeTicket function that is required
+
+```php
+/*
+* check if the close option is enabled, if so, try to close every selected ticket
+*
+* @param {array} $tickets
+*
+* @return {void}
+*/
+public function closeTicket(&$tickets) {
+  if ($this->doCloseTicket()) {
+    foreach ($tickets as $k => $v) {
+      try {
+        $this->closeTicketGlpi($k);
+        $tickets[$k]['status'] = 2;
+      } catch (\Exception $e) {
+        $tickets[$k]['status'] = -1;
+        $tickets[$k]['msg_error'] = $e->getMessage();
+      }
+    }
+  } else {
+    parent::closeTicket($tickets);
+  }
+}
+```
