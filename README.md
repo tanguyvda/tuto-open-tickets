@@ -22,6 +22,8 @@
 8. [OPENING OUR FIRST TICKET](#opening-our-first-ticket)
     - [Create ticket function](#create-ticket-function)
     - [Open a ticket from the widget](#open-a-ticket-from-the-widget)
+    - [Enabling advanced close mode](#enabling-advanced-close-mode)
+    - [Activating the close function on the PHP side](#activating-the-close-function-on-the-php-side)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
@@ -1584,3 +1586,6 @@ public function closeTicket(&$tickets) {
   }
 }
 ```
+
+We have now finished with the whole ticket process and should be able to close it.
+![closing ticket](images/closing-ticket.gif)
