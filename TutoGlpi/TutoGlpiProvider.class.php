@@ -287,13 +287,6 @@ class TutoGlpiProvider extends AbstractProvider {
 
         if ($entry['Type'] == self::GLPI_ENTITIES_TYPE) {
             $this->assignGlpiEntities($entry, $groups_order, $groups);
-
-            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/groups_order", "a") or die ("Unable to open file!");
-            fwrite($file, print_r($groups_order,true));
-            fclose($file);
-            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/groups", "a") or die ("Unable to open file!");
-            fwrite($file, print_r($groups,true));
-            fclose($file);
         }
     }
 
@@ -309,21 +302,30 @@ class TutoGlpiProvider extends AbstractProvider {
     * throw \Exception if we can't get entities from glpi
     */
     protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
+        // add a label to our entry and activate sorting or not.
         $groups[$entry['Id']] = array(
             'label' => _($entry['Label']) .
-            (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '' )
+            (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '' ),
+            'sort' => (isset($entry['Sort']) && $entry['Sort'] == 1 ? 1 : 0)
         );
+        // adds our entry in the group order array
         $groups_order[] = $entry['Id'];
 
+        // try to get entities
         try {
-            $this->getEntities();
+            $listEntities = $this->getCache($entry['Id']);
+            if (is_null($listEntities)) {
+                // if no entity found in cache, get them from glpi and put them in cache for 8 hours
+                $listEntities = $this->getEntities();
+                $this->setCache($entry['Id'], $listEntities, 8 * 3600);
+            }
         } catch (\Exception $e) {
             $groups[$entry['Id']]['code'] = -1;
             $groups[$entry['Id']]['msg_error'] = $e->getMessage();
         }
 
         $result = array();
-        /* this is what is inside $this->glpiCallResult['response'] at this point
+        /* this is what is inside $this->glpiCallResult['response'] or $listEntities at this point
         { "myentities": [
             {
               "id": 1,
@@ -348,7 +350,7 @@ class TutoGlpiProvider extends AbstractProvider {
           ]
         }
         */
-        foreach ($this->glpiCallResult['response']['myentities'] as $entity) {
+        foreach ($listEntities['myentities'] as $entity) {
             // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
             // inside the result array
             if (!isset($entry['Filter']) || is_null($entry['Filter']) || $entry['Filter'] == '') {
@@ -363,7 +365,6 @@ class TutoGlpiProvider extends AbstractProvider {
             }
         }
 
-        $this->saveSession('glpi_entities', $this->glpiCallResult['response']);
         $groups[$entry['Id']]['values'] = $result;
     }
 
@@ -397,12 +398,15 @@ class TutoGlpiProvider extends AbstractProvider {
     * @return {array} $result will tell us if the submit ticket action resulted in a ticket being opened
     */
     protected function doSubmit($db_storage, $contact, $host_problems, $service_problems, $extraTicketArguments=array()) {
+        // initiate a result array
         $result = array(
             'ticket_id' => null,
             'ticket_error_message' => null,
             'ticket_is_ok' => 0,
             'ticket_time' => time()
         );
+
+        // initiate smarty variables
         $tpl = new Smarty();
         $tpl = initSmartyTplForPopup($this->_centreon_open_tickets_path, $tpl, 'providers/Abstract/templates',
         $this->_centreon_path);
@@ -411,10 +415,12 @@ class TutoGlpiProvider extends AbstractProvider {
         $tpl->assign('user', $contact);
         $tpl->assign('host_selected', $host_problems);
         $tpl->assign('service_selected', $service_problems);
+        // assign submitted values from the widget to the template
         $this->assignSubmittedValues($tpl);
 
         $ticketArguments = $extraTicketArguments;
         if (isset($this->rule_data['clones']['mappingTicket'])) {
+            // for each ticket argument in the rule form, we retrieve its value
             foreach ($this->rule_data['clones']['mappingTicket'] as $value) {
                 $tpl->assign('string', $value['Value']);
                 $resultString = $tpl->fetch('eval.ihtml');
@@ -425,6 +431,7 @@ class TutoGlpiProvider extends AbstractProvider {
             }
         }
 
+        // we try to open the ticket
         try {
             $this->createTicket($ticketArguments);
         } catch (\Exception $e) {
@@ -432,6 +439,7 @@ class TutoGlpiProvider extends AbstractProvider {
             return $result;
         }
 
+        // we save ticket data in our database
         $this->saveHistory($db_storage, $result, array(
             'contact' => $contact,
             'host_problems' => $host_problems,
@@ -595,7 +603,7 @@ class TutoGlpiProvider extends AbstractProvider {
             throw new \Exception($e->getMessage(), $e->getCode());
         }
 
-        return true;
+        return $this->glpiCallResult['response'];
     }
 
     /*

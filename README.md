@@ -1239,10 +1239,11 @@ Array
 */
 protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
 
-  // add a label to our entry
+  // add a label to our entry and activate sorting or not.
   $groups[$entry['Id']] = array(
     'label' => _($entry['Label']) .
-      (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : '')
+      (isset($entry['Mandatory']) && $entry['Mandatory'] == 1 ? $this->_required_field : ''),
+    'sort' => (isset($entry['Sort']) && $entry['Sort'] == 1 ? 1 : 0)
   );
 
   // adds our entry in the group order array
@@ -1654,6 +1655,76 @@ What we aim for is the following:
     - select a category
     - open the ticket
 
-#### Session token cache <a name="session-token-cache"></a>
-This one is going to be a bit specific. It's nice to have it in cache but the token can expire on the Glpi side,
-so, if get it from cache, we can still
+#### Putting entities in cache <a name="putting-entities-in-cache"></a>
+We're not going to use the session token as an example because it is a bit tricky. So here we go
+with the **assignGlpiEntities** function. And we are going to add some debug to check if we are
+getting our entities from the cache or not. In the following example, we  will print the cache or print
+**no cache this time** if we didn't found data in cache. If you made a mistake like you forgot to return the
+list of entities in the getEntities function, you can just log out of your centreon and log back in.
+
+```php
+protected function assignGlpiEntities($entry, &$groups_order, &$groups) {
+  // ... code ... //
+  try {
+    //get entities from cache
+    $listEntities = $this->getCache($entry['Id']);
+    $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/cache", "w") or die ("Unable to open file!");
+    fwrite($file, print_r($listEntities,true));
+    if (is_null($listEntities)) {
+      fwrite($file, print_r('no cache this time', true));
+      // if no entity found in cache, get them from glpi and put them in cache for 8 hours
+      $listEntities = $this->getEntities();
+      $this->setCache($entry['Id'], $listEntities, 8 * 3600);
+    }
+  } catch (\Exception $e) {
+    $groups[$entry['Id']]['code'] = -1;
+    $groups[$entry['Id']]['msg_error'] = $e->getMessage();
+  }
+
+  fclose($file);
+  $result = array();
+  foreach ($listEntities['myentities'] as $entity) {
+    // foreach entity found, if we don't have any filter configured, we just put the id and the name of the entity
+    // inside the result array
+    if (!isset($entry['Filter']) || is_null($entry['Filter']) || $entry['Filter'] == '') {
+      $result[$entity['id']] = $this->to_utf8($entity['name']);
+      continue;
+    }
+
+    // if we do have have a filter, we make sure that the match the filter, if so, we put the name and the id
+    // of the entity inside the result array
+    if (preg_match('/' . $entry['Filter'] . '/', $entity['name'])) {
+      $result[$entity['id']] = $this->to_utf8($entity['name']);
+    }
+  }
+
+  $groups[$entry['Id']]['values'] = $result;
+}
+```
+
+we also need to do a small modification on the **getEntities** function. if we want `$listEntities` to be
+filled with value, we need **getEntities** to return those values and not just return true.
+
+```php
+/*
+* ... comments ...
+*
+* @return {array} $this->glpiCallResult['response'] list of entities
+*
+* throw \Exception if we can't get a session token
+* throw \Exception if we can't get entities data
+*/
+protected function getEntities() {
+
+  // ... code ... //
+
+  try {
+    // the variable is going to be used outside of this method.
+    $this->glpiCallResult['response'] = json_decode($this->curlQuery($info), true);
+  } catch (\Exception $e) {
+    throw new \Exception($e->getMessage(), $e->getCode());
+  }
+
+  return $this->glpiCallResult['response'];
+}
+```
