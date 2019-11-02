@@ -21,6 +21,7 @@
 
 class TutoGlpiProvider extends AbstractProvider {
     protected $_close_advanced = 1;
+    protected $_proxy_enabled = 1;
 
     const GLPI_ENTITIES_TYPE = 10;
 
@@ -76,7 +77,9 @@ class TutoGlpiProvider extends AbstractProvider {
     * @return {void}
     */
     protected function _setDefaultValueMain($body_html = 0) {
-        parent::_setDefaultValueMain();
+        parent::_setDefaultValueMain($body_html);
+
+        $this->default_data['url'] = 'http://{$address}{$api_path}';
 
         $this->default_data['clones']['groupList'] = array(
             array(
@@ -139,7 +142,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->_check_error_message = '';
         $this->_check_error_message_append = '';
 
-        $this->_checkFormValue('address', 'Please set "Address" value');
+        $this->_checkFormValue('address', 'Please set "address" value');
         $this->_checkFormValue('api_path', 'Please set "API path" value');
         $this->_checkFormValue('user_token', 'Please set "User token" value');
         $this->_checkFormValue('app_token', 'Please set "APP token" value');
@@ -176,15 +179,12 @@ class TutoGlpiProvider extends AbstractProvider {
         $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
         $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
         $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
-        // for those who aren't familiar with ternary conditions, this means that if in the form, the value of https is equal to yes, then the input
-        // will have the checked attribute, else, it won't, resulting in a ticked or unticked checkbox
-        $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
         $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
 
         // this array is here to link a label with the html code that we've wrote above
         $array_form = array(
             'address' => array(
-                'label' => _('Address') . $this->_required_field,
+                'label' => _('Addres') . $this->_required_field,
                 'html' => $address_html
             ),
             'api_path' => array(
@@ -198,10 +198,6 @@ class TutoGlpiProvider extends AbstractProvider {
             'app_token' => array(
                 'label' => _('APP token') . $this->_required_field,
                 'html' => $app_token_html
-            ),
-            'https' => array(
-                'label' => _('https'),
-                'html' => $https_html
             ),
             'timeout' => array(
                 'label' => _('Timeout'),
@@ -255,7 +251,6 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
         $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
         $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
-        $this->_save_config['simple']['https'] = $this->_submitted_config['https'];
         $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
 
         // saves the ticket arguments
@@ -534,7 +529,7 @@ class TutoGlpiProvider extends AbstractProvider {
         }
         $curl = curl_init();
 
-        $apiAddress = $info['address'] . $info['api_path'] . $info['query_endpoint'];
+        $apiAddress = $this->_getFormValue('url') . $info['query_endpoint'];
 
         // initiate our curl options
         curl_setopt($curl, CURLOPT_URL, $apiAddress);
@@ -542,6 +537,7 @@ class TutoGlpiProvider extends AbstractProvider {
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POST, $info['method']);
+        curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
         // add postData if needed
         if ($info['method']) {
             curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
@@ -549,6 +545,16 @@ class TutoGlpiProvider extends AbstractProvider {
         // change curl method with a custom one (PUT, DELETE) if needed
         if (isset($info['custom_request'])) {
             curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $info['custom_request']);
+        }
+
+        // if proxy is set, we add it to curl
+        if ($this->_getFormValue('proxy_address') != '' && $this->_getFormValue('proxy_port') != '') {
+                curl_setopt($curl, CURLOPT_PROXY, $this->_getFormValue('proxy_address') . ':' . $this->_getFormValue('proxy_port'));
+
+            // if proxy authentication configuration is set, we add it to curl
+            if ($this->_getFormValue('proxy_username') != '' && $this->_getFormValue('proxy_password') != '') {
+                curl_setopt($curl, CURLOPT_PROXYUSERPWD, $this->_getFormValue('proxy_username') . ':' . $this->_getFormValue('proxy_password'));
+            }
         }
 
         // execute curl and get status information
@@ -650,9 +656,6 @@ class TutoGlpiProvider extends AbstractProvider {
 
         try {
             $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
-            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/close_ticket", "a") or die ("Unable to open file!");
-            fwrite($file, print_r($this->glpiCallResult['response'],true));
-            fclose($file);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e->getCode());
         }

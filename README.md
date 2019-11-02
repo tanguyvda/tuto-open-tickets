@@ -175,7 +175,6 @@ What we need are:
 - a path for its REST API
 - a user token
 - an app token
-- should we use HTTPS ?
 - a connection timeout
 
 So let's get started and hope for the best.
@@ -191,7 +190,6 @@ protected function _setDefaultValueExtra() {
   $this->default_data['api_path'] = '/glpi/apirest.php';
   $this->default_data['user_token'] = '';
   $this->default_data['app_token'] = '';
-  $this->default_data['https'] = 0;
   $this->default_data['timeout'] = 60;
 }
 ```
@@ -225,15 +223,12 @@ protected function _getConfigContainer1Extra() {
   $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
   $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
   $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
-  // for those who aren't familiar with ternary conditions, this means that if in the form, the value of https is equal to yes, then the input
-  // will have the checked attribute, else, it won't, resulting in a ticked or unticked checkbox
-  $https_html = '<input type=checkbox name="https" value="yes" ' . ($this->_getFormValue('https') == 'yes' ? 'checked' : '') . '/>';
   $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
 
   // this array is here to link a label with the html code that we've wrote above
   $array_form = array(
     'address' => array(
-      'label' => _('Address'),
+      'label' => _('Addres'),
       'html' => $address_html
     ),
     'api_path' => array(
@@ -247,10 +242,6 @@ protected function _getConfigContainer1Extra() {
     'app_token' => array(
       'label' => _('APP token'),
       'html' => $app_token_html
-    ),
-    'https' => array(
-      'label' => _('https'),
-      'html' => $https_html
     ),
     'timeout' => array(
       'label' => _('Timeout'),
@@ -313,14 +304,6 @@ write the following html code in your template file
 </tr>
 <tr class="list_one">
   <td class="FormRowField">
-    {$form.https.label}
-  </td>
-  <td class="FormRowValue">
-    {$form.https.html}
-  </td>
-</tr>
-<tr class="list_two">
-  <td class="FormRowField">
     {$form.timeout.label}
   </td>
   <td class="FormRowValue">
@@ -355,7 +338,6 @@ protected function saveConfigExtra() {
   $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
   $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
   $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
-  $this->_save_config['simple']['https'] = $this->_submitted_config['https'];
   $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
 }
 ```
@@ -378,7 +360,7 @@ so people know that it is mandatory.
 // this array is here to link a label with the html code that we've wrote above
 $array_form = array(
   'address' => array(
-    'label' => _('Address') . $this->_required_field,
+    'label' => _('Addres') . $this->_required_field,
     'html' => $address_html
   ),
   'api_path' => array(
@@ -392,10 +374,6 @@ $array_form = array(
   'app_token' => array(
     'label' => _('APP token') . $this->_required_field,
     'html' => $app_token_html
-  ),
-  'https' => array(
-    'label' => _('https'),
-    'html' => $https_html
   ),
   'timeout' => array(
     'label' => _('Timeout'),
@@ -418,7 +396,7 @@ But people may be blind, so we need to add an extra layer of security
     $this->_check_error_message = '';
     $this->_check_error_message_append = '';
 
-    $this->_checkFormValue('address', 'Please set "Address" value');
+    $this->_checkFormValue('address', 'Please set "address" value');
     $this->_checkFormValue('api_path', 'Please set "API path" value');
     $this->_checkFormValue('user_token', 'Please set "User token" value');
     $this->_checkFormValue('app_token', 'Please set "APP token" value');
@@ -512,7 +490,6 @@ protected function _setDefaultValueExtra() {
   $this->default_data['api_path'] = '/glpi/apirest.php';
   $this->default_data['user_token'] = '';
   $this->default_data['app_token'] = '';
-  $this->default_data['https'] = 0;
   $this->default_data['timeout'] = 60;
 
   $this->default_data['clones']['mappingTicket'] = array(
@@ -552,7 +529,7 @@ protected function _getConfigContainer1Extra() {
 
   $array_form = array(
     'address' => array(
-      'label' => _('Address'),
+      'label' => _('Addres'),
       'html' => $address_html
     ),
     'api_path' => array(
@@ -566,10 +543,6 @@ protected function _getConfigContainer1Extra() {
     'app_token' => array(
       'label' => _('APP token'),
       'html' => $app_token_html
-    ),
-    'https' => array(
-      'label' => _('https'),
-      'html' => $https_html
     ),
     'timeout' => array(
       'label' => _('Timeout'),
@@ -668,8 +641,6 @@ protected function saveConfigExtra() {
   $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
   $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
   $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
-  $this->_save_config['simple']['https'] = (isset($this->_submitted_config['https']) && $this->_submitted_config['https'] == 'yes') ?
-      $this->_submitted_config['https'] : '';
   $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
   $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
 
@@ -684,7 +655,7 @@ Now that it is done, you should be able to save your form properly.
 Things are getting serious and to have a better understanding of the code that we're going to write, we need to
 save a real configuration.
 
-- address: 10.30.2.46
+- address: http://10.30.2.46
 - api_path: /glpi/apirest.php
 - user_token: cYpJTf0SAPHHGP561chJJxoGV2kivhDv3nFYxQbl
 - app_token: f5Rm9t5ozAyhcHDpHoMhFoPapi49TAVsXBZwulMR
@@ -708,8 +679,8 @@ Here we add the Urgency in the rule configuration form in order to have it displ
 *
 * @return {void}
 */
-protected function _setDefaultValueMain() {
-  parent::_setDefaultValueMain();
+protected function _setDefaultValueMain($body_html = 0) {
+  parent::_setDefaultValueMain($body_html);
 
   $this->default_data['clones']['groupList'] = array(
     array(
@@ -786,8 +757,8 @@ Just before, we used a custom list. The type of the list was `self::CUSTOM_TYPE`
 make the best out of it
 
 ```php
-protected function _setDefaultValueMain() {
-  parent::_setDefaultValueMain();
+protected function _setDefaultValueMain($body_html = 0) {
+  parent::_setDefaultValueMain($body_html);
 
   $this->default_data['clones']['groupList'] = array(
     array(
@@ -966,13 +937,16 @@ static protected function initSession($info) {
 * throw \Exception 10 if php-curl is not installed
 * throw \Exception 11 if glpi api fails
 */
-static protected function curlQuery($info) {
+static protected function curlQuery($info = array()) {
   // check if php curl is installed
   if (!extension_loaded("curl")) {
     throw new \Exception("couldn't find php curl", 10);
   }
   $curl = curl_init();
 
+  if (empty($info)) {
+    $info['headers']
+  }
   $apiAddress = $info['address'] . $info['api_path'] . $info['query_endpoint'];
 
   // initiate our curl options
@@ -981,6 +955,8 @@ static protected function curlQuery($info) {
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
   curl_setopt($curl, CURLOPT_POST, $info['method']);
+  // this time, we're
+  curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
   // add postData if needed
   if ($info['method']) {
     curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
@@ -1011,7 +987,7 @@ Now we need to create our ajax call. To do so, open your template file. `vi conf
 
 <!-- ... code ... -->
 
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
     {t}Test authentication{/t}
   </td>
@@ -1023,7 +999,7 @@ Now we need to create our ajax call. To do so, open your template file. `vi conf
 </tr>
 
 <!-- the code below was already there, i've changed the tr class right under this comment line -->
-<tr class="list_two">
+<tr class="list_one">
   <td class="FormRowField">
     {$form.mappingTicket.label}
   </td>
@@ -1595,7 +1571,8 @@ We have now finished with the whole ticket process and should be able to close i
 ## ADVANCED CONFIGURATION <a name="advanced-configuration"></a>
 You thought we were done with this tutorial, you couldn't be more wrong. There are a lot of things
 that we can improve. In this chapter, we're going to edit some of our previously done work to add some features or
-improve performances.
+improve performances. Keep in mind that you have ab already working Glpi provider and that what you're going to read
+can be confusing since we are going to handle things differently.
 
 ### Using cache to our advantage <a name="advanced-configuration"></a>
 At the moment, we're only getting one information from Glpi which is the entity. On a finished connector, we gather much more
@@ -1631,10 +1608,9 @@ information like categories for Glpi. Let's see what we're doing if we add categ
     - get session token
     - open the ticket
 
-we can clearly see that there is an issue with the session token, why can't we just use the same one
-each time we use the ticket ?
+That is not optimal. The obvious issue is coming from the session token.
 
-What we aim for is the following:
+What we aim for should be the following:
 
 - ticket 1
     - get session token
@@ -1726,5 +1702,92 @@ protected function getEntities() {
   }
 
   return $this->glpiCallResult['response'];
+}
+```
+### Add proxy configuration <a name="add-proxy-configuration"></a>
+For whatever reason, we could need to use a proxy in order to reach the Glpi server.
+
+```php
+
+class TutoGlpiProvider extends AbstractProvider {
+  protected $_close_advanced = 1;
+  protected $_proxy_enabled = 1;
+
+  const GLPI_ENTITIES_TYPE = 10;
+
+  // ... code ... //
+}
+```
+at this point, you should have the following result in your rule form:
+![proxy settings](images/proxy_settings.png)
+
+we just need to use them if they are configured
+
+```php
+static protected function curlQuery($info) {
+
+  // ... code ... //
+
+  // initiate our curl options
+  curl_setopt($curl, CURLOPT_URL, $apiAddress);
+  curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($curl, CURLOPT_POST, $info['method']);
+  curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
+  // add postData if needed
+  if ($info['method']) {
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
+  }
+  // change curl method with a custom one (PUT, DELETE) if needed
+  if (isset($info['custom_request'])) {
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $info['custom_request']);
+  }
+
+  // if proxy is set, we add it to curl
+  if (isset($this->_getFormValue('proxy_address')) && $this->_getFormValue('proxy_address') != ''
+    && isset($this->_getFormValue('proxy_port')) && $this->_getFormValue('proxy_port') != '') {
+      curl_setopt($curl, CURLOPT_PROXY, $this->_getFormValue('proxy_address') . ':' . $this->_getFormValue('proxy_port'));
+
+    // if proxy authentication configuration is set, we add it to curl
+    if (isset($this->_getFormValue('proxy_username')) && $this->_getFormValue('proxy_username') != ''
+      && isset($this->_getFormValue('proxy_password')) && $this->_getFormValue('proxy_password') != '') {
+        curl_setopt($curl, CURLOPT_PROXYUSERPWD, $this->_getFormValue('proxy_username') . ':' . $this->_getFormValue('proxy_password'));
+    }
+  }
+  // ... code ... //
+}
+```
+
+### Preview the API URL <a name="preview-the-api-url"></a>
+if you've watched closely what we were doing, you should have noticed that there is an Url field in our configuration form
+We are now going to use it so people can see what's behind the scene.
+
+```php
+protected function _setDefaultValueMain($body_html = 0) {
+  parent::_setDefaultValueMain($body_html);
+
+  $this->default_data['url'] = 'http://{$address}{$api_path}';
+
+  // ... code ... //
+}
+```
+
+you should now have the url field filled as follow if you try to create a new rule:
+![url configuration](images/url_configuration.png)
+
+and now we are going to use it when we do our curl
+
+```php
+static protected function curlQuery($info) {
+  // check if php curl is installed
+  if (!extension_loaded("curl")) {
+    throw new \Exception("couldn't find php curl", 10);
+  }
+  $curl = curl_init();
+
+  $apiAddress = $this->_getFormValue('url') . $info['query_endpoint'];
+
+  // ... code ... //
 }
 ```

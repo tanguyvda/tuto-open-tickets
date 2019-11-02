@@ -37,21 +37,13 @@
 </tr>
 <tr class="list_one">
   <td class="FormRowField">
-    {$form.https.label}
-  </td>
-  <td class="FormRowValue">
-    {$form.https.html}
-  </td>
-</tr>
-<tr class="list_two">
-  <td class="FormRowField">
     {$form.timeout.label}
   </td>
   <td class="FormRowValue">
     {$form.timeout.html}
   </td>
 </tr>
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
     {t}Test authentication{/t}
   </td>
@@ -63,7 +55,7 @@
 </tr>
 
 <!-- the code below was already there, i've changed the tr class right under this comment line -->
-<tr class="list_two">
+<tr class="list_one">
   <td class="FormRowField">
     {$form.mappingTicket.label}
   </td>
