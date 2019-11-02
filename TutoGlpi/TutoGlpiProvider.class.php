@@ -316,21 +316,16 @@ class TutoGlpiProvider extends AbstractProvider {
 
         // try to get entities
         try {
-            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/cache", "a") or die ("Unable to open file!");
             $listEntities = $this->getCache($entry['Id']);
-            fwrite($file, print_r($listEntities,true));
             if (is_null($listEntities)) {
-                fwrite($file, print_r('no cache this time', true));
                 // if no entity found in cache, get them from glpi and put them in cache for 8 hours
                 $listEntities = $this->getEntities();
                 $this->setCache($entry['Id'], $listEntities, 8 * 3600);
-                fwrite($file, print_r($listEntities,true));
             }
         } catch (\Exception $e) {
             $groups[$entry['Id']]['code'] = -1;
             $groups[$entry['Id']]['msg_error'] = $e->getMessage();
         }
-        fclose($file);
         $result = array();
         /* this is what is inside $this->glpiCallResult['response'] or $listEntities at this point
         { "myentities": [
@@ -373,10 +368,6 @@ class TutoGlpiProvider extends AbstractProvider {
         }
 
         $groups[$entry['Id']]['values'] = $result;
-    }
-
-    protected function assignSubmittedValueSelectMore($select_input_id, $selected_id) {
-
     }
 
     /*

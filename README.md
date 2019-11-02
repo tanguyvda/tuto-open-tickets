@@ -485,7 +485,7 @@ We're going to put the debug inside the `_getConfigContainer1Extra()` function. 
 
 ```php
  protected function _getConfigContainer1Extra() {
-     $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/tuto.log", "w") or die ("Unable to open file!");
+     $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/tuto.log", "a") or die ("Unable to open file!");
      fwrite($file, print_r($this->_internal_arg_name,true));
      fclose($file);
 
