@@ -26,6 +26,14 @@
 9. [CLOSING A TICKET](#closing-a-ticket)
     - [Enabling advanced close mode](#enabling-advanced-close-mode)
     - [Activating the close function on the PHP side](#activating-the-close-function-on-the-php-side)
+10. [ADVANCED CONFIGURATION](#advanced-configuration)
+    - [Using cache to our advantage](#advanced-configuration)
+        - [Steps rundown when you open a ticket](#steps-rundown-when-you-open-a-ticket)
+        - [Putting entities in cache](#putting-entities-in-cache)
+        - [Put session token in cache](#put-session-token-in-cache)
+    - [Add proxy configuration](#add-proxy-configuration)
+    - [Preview of the API URL](#preview-of-the-api-url)
+11. [CONCLUSION](#conclusion)
 
 ## INTRODUCTION <a name="introduction"></a>
 This documentation is here to help you go through the development of a Centreon open tickets provider.
@@ -968,7 +976,7 @@ protected function initSession() {
   );
   // try to call the rest api
   try {
-    $curlResult = json_decode(self::curlQuery($info), true);
+    $curlResult = $this->curlQuery($info);
   } catch (\Exception $e) {
     throw new Exception($e->getMessage(), $e->getCode());
   }
@@ -1013,7 +1021,7 @@ protected function curlQuery($info) {
   }
 
   // execute curl and get status information
-  $curlResult = curl_exec($curl);
+  $curlResult = json_decode(curl_exec($curl), true);
   $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
   curl_close($curl);
 
@@ -1186,7 +1194,7 @@ protected function getEntities() {
   // try to get entities from Glpi
   try {
     // the variable is going to be used outside of this method.
-    $this->glpiCallResult['response'] = json_decode($this->curlQuery($info), true);
+    $this->glpiCallResult['response'] = $this->curlQuery($info);
   } catch (\Exception $e) {
     throw new \Exception($e->getMessage(), $e->getCode());
   }
@@ -1393,7 +1401,7 @@ protected function createTicket($ticketArguments) {
 
   // try to open a new ticket through the glpi api
   try {
-    $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
+    $this->glpiCallResult['response'] = $this->curlQuery($info);
   } catch (\Exception $e) {
     throw new \Exception($e->getMessage(), $e->getCode());
   }
@@ -1564,7 +1572,7 @@ protected function closeTicketGlpi($ticketId) {
   $info['postFields'] = json_encode($fields);
 
   try {
-    $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
+    $this->glpiCallResult['response'] = $this->curlQuery($info);
   } catch (\Exception $e) {
     throw new \Exception($e->getMessage(), $e->getCode());
   }
@@ -1731,7 +1739,7 @@ protected function getEntities() {
 
   try {
     // the variable is going to be used outside of this method.
-    $this->glpiCallResult['response'] = json_decode($this->curlQuery($info), true);
+    $this->glpiCallResult['response'] = $this->curlQuery($info);
   } catch (\Exception $e) {
     throw new \Exception($e->getMessage(), $e->getCode());
   }
@@ -1739,6 +1747,113 @@ protected function getEntities() {
   return $this->glpiCallResult['response'];
 }
 ```
+#### Put session token in cache <a name="put-session-token-in-cache"></a>
+Now that we have a better overview at putting information in cache. Let's try to do that with the
+session token.
+Here is the fully reworked **curlQuery** function (we will enhance it again in the next chapter about proxy):
+```php
+/*
+* handle every query that we need to do
+*
+* @param {array} $info required information to reach the glpi api
+*
+* @return {array} $curlResult the json decoded data gathered from glpi
+*
+* throw \Exception 10 if php-curl is not installed
+* throw \Exception 11 if glpi api fails
+*/
+protected function curlQuery($info) {
+  // check if php curl is installed
+  if (!extension_loaded("curl")) {
+    throw new \Exception("couldn't find php curl", 10);
+  }
+
+  // if we aren't trying to initiate the session, we try to get the session token from the cache
+  if ($info['query_endpoint'] != '/initSession') {
+    $sessionToken = $this->getCache('session_token');
+    // if the token wasn't found in cache we initiate the session to get one and put it in cache
+    if (is_null($sessionToken)) {
+      try {
+        $sessionToken = $this->initSession();
+        $this->setCache('session_token', $sessionToken, 8 * 3600);
+        array_push($info['headers'], 'Session-Token: ' . $sessionToken);
+      } catch (\Exception $e) {
+        throw new \Exception($e->getMessage(), $e->getCode());
+      }
+    } else {
+      array_push($info['headers'], 'Session-Token: ' . $sessionToken);
+    }
+  }
+
+  $curl = curl_init();
+
+  $apiAddress = $this->_getFormValue('protocol') . '://' . $this->_getFormValue('address') .
+    $this->_getFormValue('api_path') . $info['query_endpoint'];
+
+  // initiate our curl options
+  curl_setopt($curl, CURLOPT_URL, $apiAddress);
+  curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($curl, CURLOPT_POST, $info['method']);
+  curl_setopt($curl, CURLOPT_TIMEOUT, $this->_getFormValue('timeout'));
+  // add postData if needed
+  if ($info['method']) {
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
+  }
+  // change curl method with a custom one (PUT, DELETE) if needed
+  if (isset($info['custom_request'])) {
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $info['custom_request']);
+  }
+
+  // execute curl and get status information
+  $curlResult = json_decode(curl_exec($curl), true);
+  $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  curl_close($curl);
+
+  // if http is 401 and message is about token, perhaps the token has expired, so we get a new one
+  if ($httpCode == 401 && $curlResult[0] == 'ERROR_SESSION_TOKEN_INVALID') {
+    try {
+      $this->initSession();
+      $this->curlQuery($info);
+    } catch (\Exception $e) {
+      throw new \Exception($e->getMessage(), $e->getCode());
+    }
+  // for any other issue, we throw an exception
+  } elseif ($httpCode >= 400) {
+    throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
+  }
+
+  return $curlResult;
+}
+```
+Now, the session initialization is handled by this function. There's no need to have it in the
+**getEntities, createTicket and closeTicketGlpi** functions. So you just need to remove the
+**try/catch** block at the beginning of each said functions and remove the `Session-Token:` entry from the
+`$info['headers']` array. Here is the example coming from **getEntities**
+```php
+protected function getEntities() {
+      // add the api endpoint and method to our info array
+      $info['query_endpoint'] = '/getMyEntities/?is_recursive=1';
+      $info['method'] = 0;
+      // set headers
+      $info['headers'] = array(
+          'App-Token: ' . $this->_getFormValue('app_token'),
+          'Content-Type: application/json'
+      );
+      // try to get entities from Glpi
+      try {
+          // the variable is going to be used outside of this method.
+          $this->glpiCallResult['response'] = $this->curlQuery($info);
+      } catch (\Exception $e) {
+          throw new \Exception($e->getMessage(), $e->getCode());
+      }
+
+      return $this->glpiCallResult['response'];
+  }
+```
+*I've also removed the throw \Exception about the session token since we don't handle it anymore*
+
 ### Add proxy configuration <a name="add-proxy-configuration"></a>
 For whatever reason, we could need to use a proxy in order to reach the Glpi server.
 
@@ -1829,7 +1944,7 @@ jQuery.ajax({
 ```
 at this point, proxy settings are going to work, but not because we
 
-### Preview the API URL <a name="preview-the-api-url"></a>
+### Preview of the API URL <a name="preview-of-the-api-url"></a>
 if you've watched closely what we were doing, you should have noticed that there is an Url field in our configuration form
 We are going to fill it so it helps people understand how we use the address, api_path and protocol options.
 
@@ -1845,3 +1960,6 @@ protected function _setDefaultValueMain($body_html = 0) {
 
 you should now have the url field filled as follow if you try to create a new rule:
 ![url configuration](images/url_configuration.png)
+
+## CONCLUSION <a name="conclusion"></a>
+You've made it, this tutorial is now finished.

@@ -143,7 +143,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->_check_error_message = '';
         $this->_check_error_message_append = '';
 
-        $this->_checkFormValue('address', 'Please set "address" value');
+        $this->_checkFormValue('address', 'Please set "Address" value');
         $this->_checkFormValue('api_path', 'Please set "API path" value');
         $this->_checkFormValue('protocol', 'Please set "Protocol" value');
         $this->_checkFormValue('user_token', 'Please set "User token" value');
@@ -187,7 +187,7 @@ class TutoGlpiProvider extends AbstractProvider {
         // this array is here to link a label with the html code that we've wrote above
         $array_form = array(
             'address' => array(
-                'label' => _('Addres') . $this->_required_field,
+                'label' => _('Address') . $this->_required_field,
                 'html' => $address_html
             ),
             'api_path' => array(
@@ -533,10 +533,8 @@ class TutoGlpiProvider extends AbstractProvider {
         );
         // try to call the rest api
         try {
-            $curlResult = json_decode(self::curlQuery($info), true);
-            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/initSession", "w") or die ("Unable to open file!");
-            fwrite($file, print_r($curlResult,true));
-            fclose($file);
+            $curlResult = $this->curlQuery($info);
+            $this->setCache('session_token', $curlResult['session_token'], 8 * 3600);
         } catch (\Exception $e) {
             throw new Exception($e->getMessage(), $e->getCode());
         }
@@ -549,9 +547,10 @@ class TutoGlpiProvider extends AbstractProvider {
     *
     * @param {array} $info required information to reach the glpi api
     *
-    * @return {object|json} $curlResult the json data gathered from glpi
+    * @return {array} $curlResult the json decoded data gathered from glpi
     *
     * throw \Exception 10 if php-curl is not installed
+    * throw \Exception if we can't get a session token
     * throw \Exception 11 if glpi api fails
     */
     protected function curlQuery($info) {
@@ -559,6 +558,24 @@ class TutoGlpiProvider extends AbstractProvider {
         if (!extension_loaded("curl")) {
             throw new \Exception("couldn't find php curl", 10);
         }
+
+        // if we aren't trying to initiate the session, we try to get the session token from the cache
+        if ($info['query_endpoint'] != '/initSession') {
+            $sessionToken = $this->getCache('session_token');
+            // if the token wasn't found in cache we initiate the session to get one and put it in cache
+            if (is_null($sessionToken)) {
+                try {
+                    $sessionToken = $this->initSession();
+                    $this->setCache('session_token', $sessionToken, 8 * 3600);
+                    array_push($info['headers'], 'Session-Token: ' . $sessionToken);
+                } catch (\Exception $e) {
+                    throw new \Exception($e->getMessage(), $e->getCode());
+                }
+            } else {
+                array_push($info['headers'], 'Session-Token: ' . $sessionToken);
+            }
+        }
+
         $curl = curl_init();
 
         $apiAddress = $this->_getFormValue('protocol') . '://' . $this->_getFormValue('address') .
@@ -570,7 +587,7 @@ class TutoGlpiProvider extends AbstractProvider {
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POST, $info['method']);
-        // curl_setopt($curl, CURLOPT_TIMEOUT, $this->_getFormValue('timeout'));
+        curl_setopt($curl, CURLOPT_TIMEOUT, $this->_getFormValue('timeout'));
         // add postData if needed
         if ($info['method']) {
             curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
@@ -581,24 +598,30 @@ class TutoGlpiProvider extends AbstractProvider {
         }
 
         // if proxy is set, we add it to curl
-        // if ($this->_getFormValue('proxy_address') != '' && $this->_getFormValue('proxy_port') != '') {
-        //         curl_setopt($curl, CURLOPT_PROXY, $this->_getFormValue('proxy_address') . ':' . $this->_getFormValue('proxy_port'));
-        //
-        //     // if proxy authentication configuration is set, we add it to curl
-        //     if ($this->_getFormValue('proxy_username') != '' && $this->_getFormValue('proxy_password') != '') {
-        //         curl_setopt($curl, CURLOPT_PROXYUSERPWD, $this->_getFormValue('proxy_username') . ':' . $this->_getFormValue('proxy_password'));
-        //     }
-        // }
+        if ($this->_getFormValue('proxy_address') != '' && $this->_getFormValue('proxy_port') != '') {
+                curl_setopt($curl, CURLOPT_PROXY, $this->_getFormValue('proxy_address') . ':' . $this->_getFormValue('proxy_port'));
+
+            // if proxy authentication configuration is set, we add it to curl
+            if ($this->_getFormValue('proxy_username') != '' && $this->_getFormValue('proxy_password') != '') {
+                curl_setopt($curl, CURLOPT_PROXYUSERPWD, $this->_getFormValue('proxy_username') . ':' . $this->_getFormValue('proxy_password'));
+            }
+        }
 
         // execute curl and get status information
-        $curlResult = curl_exec($curl);
-        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/fookincurl", "a") or die ("Unable to open file!");
-        fwrite($file, print_r($apiAddress,true));
-        fclose($file);
+        $curlResult = json_decode(curl_exec($curl), true);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-        if ($httpCode >= 400) {
+        // if http is 401 and message is about token, perhaps the token has expired, so we get a new one
+        if ($httpCode == 401 && $curlResult[0] == 'ERROR_SESSION_TOKEN_INVALID') {
+            try {
+                $this->initSession();
+                $this->curlQuery($info);
+            } catch (\Exception $e) {
+                throw new \Exception($e->getMessage(), $e->getCode());
+            }
+        // for any other issue, we throw an exception
+        } elseif ($httpCode >= 400) {
             throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
         }
 
@@ -611,33 +634,21 @@ class TutoGlpiProvider extends AbstractProvider {
     *
     * @return {array} $this->glpiCallResult['response'] list of entities
     *
-    * throw \Exception if we can't get a session token
     * throw \Exception if we can't get entities data
     */
     protected function getEntities() {
-        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/debug_entities.log", "w") or die ("Unable to open file!");
-        // get a session token
-        try {
-            $sessionToken = $this->initSession();
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage(), $e->getCode());
-        }
-
         // add the api endpoint and method to our info array
         $info['query_endpoint'] = '/getMyEntities/?is_recursive=1';
         $info['method'] = 0;
         // set headers
         $info['headers'] = array(
             'App-Token: ' . $this->_getFormValue('app_token'),
-            'Session-Token: ' . $sessionToken,
             'Content-Type: application/json'
         );
-        fwrite($file, print_r($sessionToken,true));
-        fclose($file);
         // try to get entities from Glpi
         try {
             // the variable is going to be used outside of this method.
-            $this->glpiCallResult['response'] = json_decode($this->curlQuery($info), true);
+            $this->glpiCallResult['response'] = $this->curlQuery($info);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e->getCode());
         }
@@ -652,24 +663,15 @@ class TutoGlpiProvider extends AbstractProvider {
     *
     * @return {bool}
     *
-    * throw \Exception if we can't get a session token
     * throw \Exception if we can't open a ticket
     */
     protected function createTicket($ticketArguments) {
-        // get a session token
-        try {
-            $sessionToken = $this->initSession();
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage(), $e->getCode());
-        }
-
         // add the api endpoint and method to our info array
         $info['query_endpoint'] = '/Ticket';
         $info['method'] = 1;
         // set headers
         $info['headers'] = array(
             'App-Token: ' . $this->_getFormValue('app_token'),
-            'Session-Token: ' . $sessionToken,
             'Content-Type: application/json'
         );
 
@@ -683,7 +685,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $info['postFields'] = json_encode($fields);
 
         try {
-            $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
+            $this->glpiCallResult['response'] = $this->curlQuery($info);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e->getCode());
         }
@@ -698,17 +700,9 @@ class TutoGlpiProvider extends AbstractProvider {
     *
     * @return {bool}
     *
-    * throw \Exception if it can't get a session token
     * throw \Exception if it can't close the ticket
     */
     protected function closeTicketGlpi($ticketId) {
-
-        try {
-            $sessionToken = $this->initSession();
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage(), $e-getCode());
-        }
-
         // add the api endpoint and method to our info array
         $info['query_endpoint'] = '/Ticket/' . $ticketId;
         $info['method'] = 1;
@@ -716,7 +710,6 @@ class TutoGlpiProvider extends AbstractProvider {
         // set headers
         $info['headers'] = array(
             'App-Token: ' . $this->_getFormValue('app_token'),
-            'Session-Token: ' . $sessionToken,
             'Content-Type: application/json'
         );
 
@@ -728,7 +721,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $info['postFields'] = json_encode($fields);
 
         try {
-            $this->glpiCallResult['response'] = json_decode($this->curlQuery($info),true);
+            $this->glpiCallResult['response'] = $this->curlQuery($info);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e->getCode());
         }
