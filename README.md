@@ -1590,3 +1590,70 @@ public function closeTicket(&$tickets) {
 
 We have now finished with the whole ticket process and should be able to close it.
 ![closing ticket](images/closing-ticket.gif)
+
+## ADVANCED CONFIGURATION <a name="advanced-configuration"></a>
+You thought we were done with this tutorial, you couldn't be more wrong. There are a lot of things
+that we can improve. In this chapter, we're going to edit some of our previously done work to add some features or
+improve performances.
+
+### Using cache to our advantage <a name="advanced-configuration"></a>
+At the moment, we're only getting one information from Glpi which is the entity. On a finished connector, we gather much more
+information like categories for Glpi. Let's see what we're doing if we add categories
+
+#### Steps rundown when you open a ticket <a name="steps-rundown-when-you-open-a-ticket"></a>
+
+- ticket 1
+    - get session token
+    - get entities list
+    - get session token
+    - get categories
+    - select an entity
+    - select a category
+    - get session token
+    - open the ticket
+- ticket 2
+    - get session token
+    - get entities list
+    - get session token
+    - get categories
+    - select an entity
+    - select a category
+    - get session token
+    - open the ticket
+- ticket 3
+    - get session token
+    - get entities list
+    - get session token
+    - get categories
+    - select an entity
+    - select a category
+    - get session token
+    - open the ticket
+
+we can clearly see that there is an issue with the session token, why can't we just use the same one
+each time we use the ticket ?
+
+What we aim for is the following:
+
+- ticket 1
+    - get session token
+    - set token in cache
+    - get entities list
+    - set list in cache
+    - get categories
+    - set list in cache
+    - select an entity
+    - select a category
+    - open the ticket
+- ticket 2 (now everything is in cache)
+    - select an entity
+    - select a category
+    - open the ticket
+- ticket 3 (everything is still in cache)
+    - select an entity
+    - select a category
+    - open the ticket
+
+#### Session token cache <a name="session-token-cache"></a>
+This one is going to be a bit specific. It's nice to have it in cache but the token can expire on the Glpi side,
+so, if get it from cache, we can still
