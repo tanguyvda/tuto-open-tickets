@@ -44,8 +44,9 @@ class TutoGlpiProvider extends AbstractProvider {
     */
     protected function _setDefaultValueExtra() {
 
-        $this->default_data['address'] = '10.30.2.2';
+        $this->default_data['address'] = '10.30.2.46';
         $this->default_data['api_path'] = '/glpi/apirest.php';
+        $this->default_data['protocol'] = 'http';
         $this->default_data['user_token'] = '';
         $this->default_data['app_token'] = '';
         $this->default_data['https'] = 0;
@@ -54,7 +55,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->default_data['clones']['mappingTicket'] = array(
           array(
             'Arg' =>  self::ARG_TITLE,
-            'Value' => 'Issue {include file="file:$_centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
+            'Value' => 'Issue {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
           ),
           array(
             'Arg' => self::ARG_CONTENT,
@@ -79,7 +80,7 @@ class TutoGlpiProvider extends AbstractProvider {
     protected function _setDefaultValueMain($body_html = 0) {
         parent::_setDefaultValueMain($body_html);
 
-        $this->default_data['url'] = 'http://{$address}{$api_path}';
+        $this->default_data['url'] = '{$protocol}://{$address}{$api_path}';
 
         $this->default_data['clones']['groupList'] = array(
             array(
@@ -100,13 +101,13 @@ class TutoGlpiProvider extends AbstractProvider {
         $this->default_data['clones']['customList'] = array(
             array(
                 'Id' => 'urgency',
-                'Value' => '1',
+                'Value' => '5',
                 'Label' => 'Very High',
                 'Default' => ''
             ),
             array(
                 'Id' => 'urgency',
-                'Value' => '2',
+                'Value' => '4',
                 'Label' => 'High',
                 'Default' => ''
             ),
@@ -118,13 +119,13 @@ class TutoGlpiProvider extends AbstractProvider {
             ),
             array(
                 'Id' => 'urgency',
-                'Value' => '4',
+                'Value' => '2',
                 'Label' => 'Low',
                 'Default' => ''
             ),
             array(
                 'Id' => 'urgency',
-                'Value' => '5',
+                'Value' => '1',
                 'Label' => 'Very Low',
                 'Default' => ''
             ),
@@ -144,6 +145,7 @@ class TutoGlpiProvider extends AbstractProvider {
 
         $this->_checkFormValue('address', 'Please set "address" value');
         $this->_checkFormValue('api_path', 'Please set "API path" value');
+        $this->_checkFormValue('protocol', 'Please set "Protocol" value');
         $this->_checkFormValue('user_token', 'Please set "User token" value');
         $this->_checkFormValue('app_token', 'Please set "APP token" value');
         // you know what ? we're going to check if the timeout is an integer too
@@ -177,6 +179,7 @@ class TutoGlpiProvider extends AbstractProvider {
         */
         $address_html = '<input size="50" name="address" type="text" value="' . $this->_getFormValue('address') .'" />';
         $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
+        $protocol_html = '<input size="50" name="protocol" type="text" value="' . $this->_getFormValue('protocol') . '" />';
         $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
         $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
         $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
@@ -191,6 +194,10 @@ class TutoGlpiProvider extends AbstractProvider {
                 'label' => _('API path') . $this->_required_field,
                 'html' => $api_path_html
             ),
+            'protocol' => array(
+                'label' => _('Protocol') . $this->_required_field,
+                'html' => $protocol_html
+            ),
             'user_token' => array(
                 'label' => _('User token') . $this->_required_field,
                 'html' => $user_token_html
@@ -204,7 +211,7 @@ class TutoGlpiProvider extends AbstractProvider {
                 'html' => $timeout_html
             ),
             //we add a key to our array
-            'mappingTicket' => array(
+            'mappingTicketLabel' => array(
                 'label' => _('Mapping ticket arguments')
             )
         );
@@ -249,6 +256,7 @@ class TutoGlpiProvider extends AbstractProvider {
     protected function saveConfigExtra() {
         $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
         $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
+        $this->_save_config['simple']['protocol'] = $this->_submitted_config['protocol'];
         $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
         $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
         $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
@@ -308,17 +316,21 @@ class TutoGlpiProvider extends AbstractProvider {
 
         // try to get entities
         try {
+            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/cache", "a") or die ("Unable to open file!");
             $listEntities = $this->getCache($entry['Id']);
+            fwrite($file, print_r($listEntities,true));
             if (is_null($listEntities)) {
+                fwrite($file, print_r('no cache this time', true));
                 // if no entity found in cache, get them from glpi and put them in cache for 8 hours
                 $listEntities = $this->getEntities();
                 $this->setCache($entry['Id'], $listEntities, 8 * 3600);
+                fwrite($file, print_r($listEntities,true));
             }
         } catch (\Exception $e) {
             $groups[$entry['Id']]['code'] = -1;
             $groups[$entry['Id']]['msg_error'] = $e->getMessage();
         }
-
+        fclose($file);
         $result = array();
         /* this is what is inside $this->glpiCallResult['response'] or $listEntities at this point
         { "myentities": [
@@ -462,16 +474,40 @@ class TutoGlpiProvider extends AbstractProvider {
         // this is called through our javascript code. Those parameters are already checked in JS code.
         // but since this function is public, we check again because anyone could use this function
         if (!isset($info['address']) || !isset($info['api_path']) || !isset($info['user_token'])
-            || !isset($info['app_token'])
-        ) {
-            throw new \Exception('missing arguments', 13);
+            || !isset($info['app_token']) || !isset($info['protocol'])) {
+                throw new \Exception('missing arguments', 13);
         }
 
-        // try to get a session token from Glpi
-        try {
-            self::initSession($info);
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage(), $e->getCode());
+        // check if php curl is installed
+        if (!extension_loaded("curl")) {
+            throw new \Exception("couldn't find php curl", 10);
+        }
+
+        $curl = curl_init();
+
+        $apiAddress = $info['protocol'] . '://' . $info['address'] . $info['api_path'] . '/initSession';
+        $info['method'] = 0;
+        // set headers
+        $info['headers'] = array(
+            'App-Token: ' . $info['app_token'],
+            'Authorization: user_token ' . $info['user_token'],
+            'Content-Type: application/json'
+        );
+
+        // initiate our curl options
+        curl_setopt($curl, CURLOPT_URL, $apiAddress);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_POST, $info['method']);
+        curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
+        // execute curl and get status information
+        $curlResult = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($httpCode > 301) {
+            throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
         }
 
         return true;
@@ -480,31 +516,27 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * Get a session token from Glpi
     *
-    * @param {array} $info required information to reach the glpi api
-    *
     * @return {string} the session token
     *
     * throw \Exception if no api information has been found
     * throw \Exception if the connection failed
     */
-    static protected function initSession($info) {
-        // check if we have our api informations
-        if (empty($info)) {
-            throw new \Exception('no API parameters found.', 12);
-        }
-
+    protected function initSession() {
         // add the api endpoint and method to our info array
         $info['query_endpoint'] = '/initSession';
         $info['method'] = 0;
         // set headers
         $info['headers'] = array(
-            'App-Token: ' . $info['app_token'],
-            'Authorization: user_token ' . $info['user_token'],
+            'App-Token: ' . $this->_getFormValue('app_token'),
+            'Authorization: user_token ' . $this->_getFormValue('user_token'),
             'Content-Type: application/json'
         );
         // try to call the rest api
         try {
             $curlResult = json_decode(self::curlQuery($info), true);
+            $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/initSession", "w") or die ("Unable to open file!");
+            fwrite($file, print_r($curlResult,true));
+            fclose($file);
         } catch (\Exception $e) {
             throw new Exception($e->getMessage(), $e->getCode());
         }
@@ -522,14 +554,15 @@ class TutoGlpiProvider extends AbstractProvider {
     * throw \Exception 10 if php-curl is not installed
     * throw \Exception 11 if glpi api fails
     */
-    static protected function curlQuery($info) {
+    protected function curlQuery($info) {
         // check if php curl is installed
         if (!extension_loaded("curl")) {
             throw new \Exception("couldn't find php curl", 10);
         }
         $curl = curl_init();
 
-        $apiAddress = $this->_getFormValue('url') . $info['query_endpoint'];
+        $apiAddress = $this->_getFormValue('protocol') . '://' . $this->_getFormValue('address') .
+            $this->_getFormValue('api_path') . $info['query_endpoint'];
 
         // initiate our curl options
         curl_setopt($curl, CURLOPT_URL, $apiAddress);
@@ -537,7 +570,7 @@ class TutoGlpiProvider extends AbstractProvider {
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_POST, $info['method']);
-        curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
+        // curl_setopt($curl, CURLOPT_TIMEOUT, $this->_getFormValue('timeout'));
         // add postData if needed
         if ($info['method']) {
             curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
@@ -548,17 +581,20 @@ class TutoGlpiProvider extends AbstractProvider {
         }
 
         // if proxy is set, we add it to curl
-        if ($this->_getFormValue('proxy_address') != '' && $this->_getFormValue('proxy_port') != '') {
-                curl_setopt($curl, CURLOPT_PROXY, $this->_getFormValue('proxy_address') . ':' . $this->_getFormValue('proxy_port'));
-
-            // if proxy authentication configuration is set, we add it to curl
-            if ($this->_getFormValue('proxy_username') != '' && $this->_getFormValue('proxy_password') != '') {
-                curl_setopt($curl, CURLOPT_PROXYUSERPWD, $this->_getFormValue('proxy_username') . ':' . $this->_getFormValue('proxy_password'));
-            }
-        }
+        // if ($this->_getFormValue('proxy_address') != '' && $this->_getFormValue('proxy_port') != '') {
+        //         curl_setopt($curl, CURLOPT_PROXY, $this->_getFormValue('proxy_address') . ':' . $this->_getFormValue('proxy_port'));
+        //
+        //     // if proxy authentication configuration is set, we add it to curl
+        //     if ($this->_getFormValue('proxy_username') != '' && $this->_getFormValue('proxy_password') != '') {
+        //         curl_setopt($curl, CURLOPT_PROXYUSERPWD, $this->_getFormValue('proxy_username') . ':' . $this->_getFormValue('proxy_password'));
+        //     }
+        // }
 
         // execute curl and get status information
         $curlResult = curl_exec($curl);
+        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/fookincurl", "a") or die ("Unable to open file!");
+        fwrite($file, print_r($apiAddress,true));
+        fclose($file);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
@@ -573,20 +609,16 @@ class TutoGlpiProvider extends AbstractProvider {
     /*
     * get entities from glpi
     *
-    * @return {bool}
+    * @return {array} $this->glpiCallResult['response'] list of entities
     *
     * throw \Exception if we can't get a session token
     * throw \Exception if we can't get entities data
     */
     protected function getEntities() {
-
-        $info['address'] = $this->rule_data['address'];
-        $info['api_path'] = $this->rule_data['api_path'];
-        $info['user_token'] = $this->rule_data['user_token'];
-        $info['app_token'] = $this->rule_data['app_token'];
+        $file = fopen("/var/opt/rh/rh-php72/log/php-fpm/debug_entities.log", "w") or die ("Unable to open file!");
         // get a session token
         try {
-            $sessionToken = $this->initSession($info);
+            $sessionToken = $this->initSession();
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e->getCode());
         }
@@ -596,11 +628,12 @@ class TutoGlpiProvider extends AbstractProvider {
         $info['method'] = 0;
         // set headers
         $info['headers'] = array(
-            'App-Token: ' . $info['app_token'],
+            'App-Token: ' . $this->_getFormValue('app_token'),
             'Session-Token: ' . $sessionToken,
             'Content-Type: application/json'
         );
-
+        fwrite($file, print_r($sessionToken,true));
+        fclose($file);
         // try to get entities from Glpi
         try {
             // the variable is going to be used outside of this method.
@@ -623,14 +656,9 @@ class TutoGlpiProvider extends AbstractProvider {
     * throw \Exception if we can't open a ticket
     */
     protected function createTicket($ticketArguments) {
-        $info['address'] = $this->rule_data['address'];
-        $info['api_path'] = $this->rule_data['api_path'];
-        $info['user_token'] = $this->rule_data['user_token'];
-        $info['app_token'] = $this->rule_data['app_token'];
-
         // get a session token
         try {
-            $sessionToken = $this->initSession($info);
+            $sessionToken = $this->initSession();
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e->getCode());
         }
@@ -640,7 +668,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $info['method'] = 1;
         // set headers
         $info['headers'] = array(
-            'App-Token: ' . $info['app_token'],
+            'App-Token: ' . $this->_getFormValue('app_token'),
             'Session-Token: ' . $sessionToken,
             'Content-Type: application/json'
         );
@@ -674,13 +702,9 @@ class TutoGlpiProvider extends AbstractProvider {
     * throw \Exception if it can't close the ticket
     */
     protected function closeTicketGlpi($ticketId) {
-        $info['address'] = $this->rule_data['address'];
-        $info['api_path'] = $this->rule_data['api_path'];
-        $info['user_token'] = $this->rule_data['user_token'];
-        $info['app_token'] = $this->rule_data['app_token'];
 
         try {
-            $sessionToken = $this->initSession($info);
+            $sessionToken = $this->initSession();
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e-getCode());
         }
@@ -691,7 +715,7 @@ class TutoGlpiProvider extends AbstractProvider {
         $info['custom_request'] = 'PUT';
         // set headers
         $info['headers'] = array(
-            'App-Token: ' . $info['app_token'],
+            'App-Token: ' . $this->_getFormValue('app_token'),
             'Session-Token: ' . $sessionToken,
             'Content-Type: application/json'
         );

@@ -18,6 +18,7 @@
 7. [GATHER TICKET ARGUMENTS FROM THE TICKETING SOFTWARE](#gather-ticket-arguments-from-the-ticketing-software)
     - [Code structure](#code-structure)
     - [Test the API connection](#test-the-api-connection)
+    - [Add a seperate api call system](#add-a-seperate-api-call-system)
     - [Get entities from Glpi](#get-entities-from-glpi)
 8. [OPENING OUR FIRST TICKET](#opening-our-first-ticket)
     - [Create ticket function](#create-ticket-function)
@@ -173,6 +174,7 @@ First of all, we need to let people fill the default options to reach the Glpi R
 What we need are:
 - an address for the Glpi server
 - a path for its REST API
+- a protocol to use
 - a user token
 - an app token
 - a connection timeout
@@ -186,8 +188,9 @@ So let's get started and hope for the best.
 * @return {void}
 */
 protected function _setDefaultValueExtra() {
-  $this->default_data['address'] = '10.30.2.2';
+  $this->default_data['address'] = '10.30.2.46';
   $this->default_data['api_path'] = '/glpi/apirest.php';
+  $this->default_data['protocol'] = 'https';
   $this->default_data['user_token'] = '';
   $this->default_data['app_token'] = '';
   $this->default_data['timeout'] = 60;
@@ -221,6 +224,7 @@ protected function _getConfigContainer1Extra() {
   */
   $address_html = '<input size="50" name="address" type="text" value="' . $this->_getFormValue('address') .'" />';
   $api_path_html = '<input size="50" name="api_path" type="text" value="' . $this->_getFormValue('api_path') . '" />';
+  $protocol_html = '<input size="50" name="protocol" type="text" value="' . $this->_getFormValue('protocol') . '" />';
   $user_token_html = '<input size="50" name="user_token" type="text" value="' . $this->_getFormValue('user_token') . '" autocomplete="off" />';
   $app_token_html = '<input size="50" name="app_token" type="text" value="' . $this->_getFormValue('app_token') . '" autocomplete="off" />';
   $timeout_html = '<input size="50" name="timeout" type="text" value="' . $this->_getFormValue('timeout') . '" :>';
@@ -234,6 +238,10 @@ protected function _getConfigContainer1Extra() {
     'api_path' => array(
       'label' => _('API path'),
       'html' => $api_path_html
+    ),
+    'protocol' => array(
+      'label' => _('Protocol'),
+      'html' => $protocol_html
     ),
     'user_token' => array(
       'label' => _('User token'),
@@ -288,13 +296,21 @@ write the following html code in your template file
 </tr>
 <tr class="list_one">
   <td class="FormRowField">
+    {$form.protocol.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.protocol.html}
+  </td>
+</tr>
+<tr class="list_two">
+  <td class="FormRowField">
     {$form.user_token.label}
   </td>
   <td class="FormRowValue">
     {$form.user_token.html}
   </td>
 </tr>
-<tr class="list_two">
+<tr class="list_one">
   <td class="FormRowField">
     {$form.app_token.label}
   </td>
@@ -302,7 +318,7 @@ write the following html code in your template file
     {$form.app_token.html}
   </td>
 </tr>
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
     {$form.timeout.label}
   </td>
@@ -336,6 +352,7 @@ The reason is that, we've created the form, but never configured the save functi
 protected function saveConfigExtra() {
   $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
   $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
+  $this->_save_config['simple']['protocol'] = $this->_submitted_config['protocol'];
   $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
   $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
   $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
@@ -349,6 +366,7 @@ It should be saved.
 What if I tell you that, you shouldn't let people save the form without having filled the mandatory fields that are:
 - address
 - API path
+- Protocol
 - User token
 - App token
 
@@ -366,6 +384,10 @@ $array_form = array(
   'api_path' => array(
     'label' => _('API path') . $this->_required_field,
     'html' => $api_path_html
+  ),
+  'protocol' => array(
+    'label' => _('Protocol') . $this->_required_field,
+    'html' => $protocol_html
   ),
   'user_token' => array(
     'label' => _('User token') . $this->_required_field,
@@ -398,9 +420,10 @@ But people may be blind, so we need to add an extra layer of security
 
     $this->_checkFormValue('address', 'Please set "address" value');
     $this->_checkFormValue('api_path', 'Please set "API path" value');
+    $this->_checkFormValue('protocol', 'Please set "Protocol" value');
     $this->_checkFormValue('user_token', 'Please set "User token" value');
     $this->_checkFormValue('app_token', 'Please set "APP token" value');
-    // you know what ? we're going to check if the timeout is an integer too
+    // you know what? we're going to check if the timeout is an integer too
     $this->_checkFormInteger('timeout', '"Timeout" must be an integer');
 
     $this->_checkLists();
@@ -486,8 +509,9 @@ Like we did at the beginning, we need to let people configure those parameters
 * @return {void}
 */
 protected function _setDefaultValueExtra() {
-  $this->default_data['address'] = '10.30.2.2';
+  $this->default_data['address'] = '10.30.2.46';
   $this->default_data['api_path'] = '/glpi/apirest.php';
+  $this->default_data['protocol'] = 'https';
   $this->default_data['user_token'] = '';
   $this->default_data['app_token'] = '';
   $this->default_data['timeout'] = 60;
@@ -495,7 +519,7 @@ protected function _setDefaultValueExtra() {
   $this->default_data['clones']['mappingTicket'] = array(
     array(
       'Arg' =>  self::ARG_TITLE,
-      'Value' => 'Issue {include file="file:$_centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
+      'Value' => 'Issue {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/display_title.ihtml"}'
     ),
     array(
       'Arg' => self::ARG_CONTENT,
@@ -536,6 +560,10 @@ protected function _getConfigContainer1Extra() {
       'label' => _('API path'),
       'html' => $api_path_html
     ),
+    'protocol' => array(
+      'label' => _('Protocol'),
+      'html' => $protocol_html
+    ),
     'user_token' => array(
       'label' => _('User token'),
       'html' => $user_token_html
@@ -549,7 +577,7 @@ protected function _getConfigContainer1Extra() {
       'html' => $timeout_html
     ),
     //we add a key to our array
-    'mappingTicket' => array(
+    'mappingTicketLabel' => array(
       'label' => _('Mapping ticket arguments')
     )
   );
@@ -590,9 +618,9 @@ add the end of this file add:
 
 <!-- ... code ... -->
 
-<tr class="list_one">
+<tr class="list_two">
     <td class="FormRowField">
-        {$form.mappingTicket.label}
+        {$form.mappingTicketLabel.label}
     </td>
     <td class="FormRowValue">
         {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/clone.ihtml" cloneId="mappingTicket" cloneSet=$form.mappingTicket}
@@ -640,9 +668,10 @@ This is easy to fix, we just need to add our ticket arguments to the save functi
 protected function saveConfigExtra() {
   $this->_save_config['simple']['address'] = $this->_submitted_config['address'];
   $this->_save_config['simple']['user_token'] = $this->_submitted_config['user_token'];
+  $this->_save_config['simple']['protocol'] = $this->_submitted_config['protocol'];
   $this->_save_config['simple']['app_token'] = $this->_submitted_config['app_token'];
-  $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
   $this->_save_config['simple']['api_path'] = $this->_submitted_config['api_path'];
+  $this->_save_config['simple']['timeout'] = $this->_submitted_config['timeout'];
 
   // saves the ticket arguments
   $this->_save_config['clones']['mappingTicket'] = $this->_getCloneSubmitted('mappingTicket', array('Arg', 'Value'));
@@ -655,8 +684,9 @@ Now that it is done, you should be able to save your form properly.
 Things are getting serious and to have a better understanding of the code that we're going to write, we need to
 save a real configuration.
 
-- address: http://10.30.2.46
+- address: 10.30.2.46
 - api_path: /glpi/apirest.php
+- protocol: http
 - user_token: cYpJTf0SAPHHGP561chJJxoGV2kivhDv3nFYxQbl
 - app_token: f5Rm9t5ozAyhcHDpHoMhFoPapi49TAVsXBZwulMR
 
@@ -711,13 +741,13 @@ protected function _setDefaultValueMain(){
   $this->default_data['clones']['customList'] = array(
     array(
       'Id' => 'urgency',
-      'Value' => '1',
+      'Value' => '5',
       'Label' => 'Very High',
       'Default' => ''
     ),
     array(
       'Id' => 'urgency',
-      'Value' => '2',
+      'Value' => '4',
       'Label' => 'High',
       'Default' => ''
     ),
@@ -729,13 +759,13 @@ protected function _setDefaultValueMain(){
     ),
     array(
       'Id' => 'urgency',
-      'Value' => '4',
+      'Value' => '2',
       'Label' => 'Low',
       'Default' => ''
     ),
     array(
       'Id' => 'urgency',
-      'Value' => '5',
+      'Value' => '1',
       'Label' => 'Very Low',
       'Default' => ''
     ),
@@ -861,7 +891,7 @@ The function is public because it is going to be called from outside of the clas
 
 ```php
 /*
-* test if we can reach Glpi webservice with the given Configuration
+* test if we can reach Glpi webservice by getting a session token with the given Configuration
 *
 * @param {array} $info required information to reach the glpi api
 *
@@ -874,16 +904,40 @@ static public function test($info) {
   // this is called through our javascript code. Those parameters are already checked in JS code.
   // but since this function is public, we check again because anyone could use this function
   if (!isset($info['address']) || !isset($info['api_path']) || !isset($info['user_token'])
-    || !isset($info['app_token'])
-  ) {
-    throw new \Exception('missing arguments', 13);
+    || !isset($info['app_token']) || !isset($info['protocol'])) {
+      throw new \Exception('missing arguments', 13);
   }
 
-  // try to get a session token from Glpi
-  try {
-    self::initSession($info);
-  } catch (\Exception $e) {
-    throw new \Exception($e->getMessage(), $e->getCode());
+  // check if php curl is installed
+  if (!extension_loaded("curl")) {
+    throw new \Exception("couldn't find php curl", 10);
+  }
+
+  $curl = curl_init();
+
+  $apiAddress = $info['protocol'] . '://' . $info['address'] . $info['api_path'] . '/initSession';
+  $info['method'] = 0;
+  // set headers
+  $info['headers'] = array(
+    'App-Token: ' . $info['app_token'],
+    'Authorization: user_token ' . $info['user_token'],
+    'Content-Type: application/json'
+  );
+
+  // initiate our curl options
+  curl_setopt($curl, CURLOPT_URL, $apiAddress);
+  curl_setopt($curl, CURLOPT_HTTPHEADER, $info['headers']);
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+  curl_setopt($curl, CURLOPT_POST, $info['method']);
+  curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
+  // execute curl and get status information
+  $curlResult = curl_exec($curl);
+  $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  curl_close($curl);
+
+  if ($httpCode > 301) {
+    throw new Exception('curl result: ' . $curlResult . '|| HTTP return code: ' . $httpCode, 11);
   }
 
   return true;
@@ -891,30 +945,25 @@ static public function test($info) {
 ```
 As you can see, every API related information is stored in a `$info` array.
 
+### Add a seperate api call system <a name="add-a-seperate-api-call-system"></a>
+
 ```php
 /*
 * Get a session token from Glpi
-*
-* @param {array} $info required information to reach the glpi api
 *
 * @return {string} the session token
 *
 * throw \Exception if no api information has been found
 * throw \Exception if the connection failed
 */
-static protected function initSession($info) {
-  // check if we have our api informations
-  if (empty($info)) {
-    throw new \Exception('no API parameters found.', 12);
-  }
-
+protected function initSession() {
   // add the api endpoint and method to our info array
   $info['query_endpoint'] = '/initSession';
   $info['method'] = 0;
   // set headers
   $info['headers'] = array(
-    'App-Token: ' . $info['app_token'],
-    'Authorization: user_token ' . $info['user_token'],
+    'App-Token: ' . $this->_getFormValue('app_token'),
+    'Authorization: user_token ' . $this->_getFormValue('user_token'),
     'Content-Type: application/json'
   );
   // try to call the rest api
@@ -937,17 +986,15 @@ static protected function initSession($info) {
 * throw \Exception 10 if php-curl is not installed
 * throw \Exception 11 if glpi api fails
 */
-static protected function curlQuery($info = array()) {
+protected function curlQuery($info) {
   // check if php curl is installed
   if (!extension_loaded("curl")) {
     throw new \Exception("couldn't find php curl", 10);
   }
   $curl = curl_init();
 
-  if (empty($info)) {
-    $info['headers']
-  }
-  $apiAddress = $info['address'] . $info['api_path'] . $info['query_endpoint'];
+  $apiAddress = $this->_getFormValue('protocol') . '://' . $this->_getFormValue('address') .
+    $this->_getFormValue('api_path') . $info['query_endpoint'];
 
   // initiate our curl options
   curl_setopt($curl, CURLOPT_URL, $apiAddress);
@@ -955,8 +1002,7 @@ static protected function curlQuery($info = array()) {
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
   curl_setopt($curl, CURLOPT_POST, $info['method']);
-  // this time, we're
-  curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
+  curl_setopt($curl, CURLOPT_TIMEOUT, $this->_getFormValue('timeout'));
   // add postData if needed
   if ($info['method']) {
     curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
@@ -1001,7 +1047,7 @@ Now we need to create our ajax call. To do so, open your template file. `vi conf
 <!-- the code below was already there, i've changed the tr class right under this comment line -->
 <tr class="list_one">
   <td class="FormRowField">
-    {$form.mappingTicket.label}
+    {$form.mappingTicketLabel.label}
   </td>
   <td class="FormRowValue">
     {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/clone.ihtml" cloneId="mappingTicket" cloneSet=$form.mappingTicket}
@@ -1022,6 +1068,7 @@ Now we need to create our ajax call. To do so, open your template file. `vi conf
     let fields = [
       'address',
       'api_path',
+      'protocol',
       'app_token',
       'user_token'
     ];
@@ -1056,8 +1103,10 @@ Now we need to create our ajax call. To do so, open your template file. `vi conf
         service: 'TutoGlpi', // this is the name of our provider
         address: jQuery('input[name="address"]').val(),
         api_path: jQuery('input[name="api_path"]').val(),
+        protocol: jQuery('input[name="protocol"]').val(),
         app_token: jQuery('input[name="app_token"]').val(),
-        user_token: jQuery('input[name="user_token"]').val()
+        user_token: jQuery('input[name="user_token"]').val(),
+        timeout: jQuery('input[name="timeout"]').val()
       }),
       success: function (data) {
         if (data) {
@@ -1117,14 +1166,9 @@ Since we've created a way to get a session token, we can use it at our advantage
 * throw \Exception if we can't get entities data
 */
 protected function getEntities() {
-
-  $info['address'] = $this->rule_data['address'];
-  $info['api_path'] = $this->rule_data['api_path'];
-  $info['user_token'] = $this->rule_data['user_token'];
-  $info['app_token'] = $this->rule_data['app_token'];
   // get a session token
   try {
-    $sessionToken = $this->initSession($info);
+    $sessionToken = $this->initSession();
   } catch (\Exception $e) {
     throw new \Exception($e->getMessage(), $e->getCode());
   }
@@ -1134,7 +1178,7 @@ protected function getEntities() {
   $info['method'] = 0;
   // set headers
   $info['headers'] = array(
-    'App-Token: ' . $info['app_token'],
+    'App-Token: ' . $this->_getFormValue('app_token'),
     'Session-Token: ' . $sessionToken,
     'Content-Type: application/json'
   );
@@ -1321,14 +1365,9 @@ as we did for the **initSession** and **getEntities** we are going to write a **
 * throw \Exception if we can't open a ticket
 */
 protected function createTicket($ticketArguments) {
-  $info['address'] = $this->rule_data['address'];
-  $info['api_path'] = $this->rule_data['api_path'];
-  $info['user_token'] = $this->rule_data['user_token'];
-  $info['app_token'] = $this->rule_data['app_token'];
-
   // get a session token
   try {
-    $sessionToken = $this->initSession($info);
+    $sessionToken = $this->initSession();
   } catch (\Exception $e) {
     throw new \Exception($e->getMessage(), $e->getCode());
   }
@@ -1338,7 +1377,7 @@ protected function createTicket($ticketArguments) {
   $info['method'] = 1;
   // set headers
   $info['headers'] = array(
-    'App-Token: ' . $info['app_token'],
+    'App-Token: ' . $this->_getFormValue('app_token'),
     'Session-Token: ' . $sessionToken,
     'Content-Type: application/json'
   );
@@ -1499,13 +1538,9 @@ First of all, let's create a closeTicketGlpi function
 * throw \Exception if it can't close the ticket
 */
 protected function closeTicketGlpi($ticketId) {
-  $info['address'] = $this->rule_data['address'];
-  $info['api_path'] = $this->rule_data['api_path'];
-  $info['user_token'] = $this->rule_data['user_token'];
-  $info['app_token'] = $this->rule_data['app_token'];
 
   try {
-    $sessionToken = $this->initSession($info);
+    $sessionToken = $this->initSession();
   } catch (\Exception $e) {
     throw new \Exception($e->getMessage(), $e-getCode());
   }
@@ -1516,7 +1551,7 @@ protected function closeTicketGlpi($ticketId) {
   $info['custom_request'] = 'PUT';
   // set headers
   $info['headers'] = array(
-    'App-Token: ' . $info['app_token'],
+    'App-Token: ' . $this->_getFormValue('app_token'),
     'Session-Token: ' . $sessionToken,
     'Content-Type: application/json'
   );
@@ -1734,7 +1769,7 @@ static protected function curlQuery($info) {
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
   curl_setopt($curl, CURLOPT_POST, $info['method']);
-  curl_setopt($curl, CURLOPT_TIMEOUT, $info['timeout']);
+  curl_setopt($curl, CURLOPT_TIMEOUT, $this->_getFormValue('timeout'));
   // add postData if needed
   if ($info['method']) {
     curl_setopt($curl, CURLOPT_POSTFIELDS, $info['postFields']);
@@ -1758,16 +1793,51 @@ static protected function curlQuery($info) {
   // ... code ... //
 }
 ```
+If you still have memories of what we've done so far, you should remember that we made a test function. In case
+of proxy, we need our test to use it. Open your **conf_container1extra.ihtml** file and edit the script part to add the proxy parameters.
+
+```javascript
+
+// ... code ... //
+
+if (inError) {
+  return;
+}
+
+jQuery.ajax({
+  // call open ticket api with every needed parameter
+  url: webServiceUrl + '?object=centreon_openticket&action=testProvider',
+  type: 'POST',
+  contentType: 'application/json',
+  dataType: 'json',
+  data: JSON.stringify({
+    service: 'TutoGlpi', // this is the name of our provider
+    address: jQuery('input[name="address"]').val(),
+    api_path: jQuery('input[name="api_path"]').val(),
+    protocol: jQuery('input[name="protocol"]').val(),
+    app_token: jQuery('input[name="app_token"]').val(),
+    user_token: jQuery('input[name="user_token"]').val(),
+    timeout: jQuery('input[name="timeout"]').val(),
+    proxy_address: jQuery('input[name="proxy_address"]').val(),
+    proxy_port: jQuery('input[name="proxy_port"]').val(),
+    proxy_username: jQuery('input[name="proxy_username"]').val(),
+    proxy_password: jQuery('input[name="proxy_password"]').val()
+  }),
+
+// ... code ... //
+})
+```
+at this point, proxy settings are going to work, but not because we
 
 ### Preview the API URL <a name="preview-the-api-url"></a>
 if you've watched closely what we were doing, you should have noticed that there is an Url field in our configuration form
-We are now going to use it so people can see what's behind the scene.
+We are going to fill it so it helps people understand how we use the address, api_path and protocol options.
 
 ```php
 protected function _setDefaultValueMain($body_html = 0) {
   parent::_setDefaultValueMain($body_html);
 
-  $this->default_data['url'] = 'http://{$address}{$api_path}';
+  $this->default_data['url'] = '{$protocol}://{$address}{$api_path}';
 
   // ... code ... //
 }
@@ -1775,19 +1845,3 @@ protected function _setDefaultValueMain($body_html = 0) {
 
 you should now have the url field filled as follow if you try to create a new rule:
 ![url configuration](images/url_configuration.png)
-
-and now we are going to use it when we do our curl
-
-```php
-static protected function curlQuery($info) {
-  // check if php curl is installed
-  if (!extension_loaded("curl")) {
-    throw new \Exception("couldn't find php curl", 10);
-  }
-  $curl = curl_init();
-
-  $apiAddress = $this->_getFormValue('url') . $info['query_endpoint'];
-
-  // ... code ... //
-}
-```

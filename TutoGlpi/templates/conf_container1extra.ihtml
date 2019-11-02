@@ -21,13 +21,21 @@
 </tr>
 <tr class="list_one">
   <td class="FormRowField">
+    {$form.protocol.label}
+  </td>
+  <td class="FormRowValue">
+    {$form.protocol.html}
+  </td>
+</tr>
+<tr class="list_two">
+  <td class="FormRowField">
     {$form.user_token.label}
   </td>
   <td class="FormRowValue">
     {$form.user_token.html}
   </td>
 </tr>
-<tr class="list_two">
+<tr class="list_one">
   <td class="FormRowField">
     {$form.app_token.label}
   </td>
@@ -35,7 +43,7 @@
     {$form.app_token.html}
   </td>
 </tr>
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
     {$form.timeout.label}
   </td>
@@ -43,7 +51,7 @@
     {$form.timeout.html}
   </td>
 </tr>
-<tr class="list_two">
+<tr class="list_one">
   <td class="FormRowField">
     {t}Test authentication{/t}
   </td>
@@ -54,16 +62,14 @@
   </td>
 </tr>
 
-<!-- the code below was already there, i've changed the tr class right under this comment line -->
-<tr class="list_one">
+<tr class="list_two">
   <td class="FormRowField">
-    {$form.mappingTicket.label}
+    {$form.mappingTicketLabel.label}
   </td>
   <td class="FormRowValue">
     {include file="file:$centreon_open_tickets_path/providers/Abstract/templates/clone.ihtml" cloneId="mappingTicket" cloneSet=$form.mappingTicket}
   </td>
 </tr>
-<!-- now we are going to write new code again -->
 
 <script>
   var webServiceUrl = '{$webServiceUrl}'
@@ -78,6 +84,7 @@
     let fields = [
       'address',
       'api_path',
+      'protocol',
       'app_token',
       'user_token'
     ];
@@ -111,8 +118,14 @@
         service: 'TutoGlpi', // this is the name of our provider
         address: jQuery('input[name="address"]').val(),
         api_path: jQuery('input[name="api_path"]').val(),
+        protocol: jQuery('input[name="protocol"]').val(),
         app_token: jQuery('input[name="app_token"]').val(),
-        user_token: jQuery('input[name="user_token"]').val()
+        user_token: jQuery('input[name="user_token"]').val(),
+        timeout: jQuery('input[name="timeout"]').val(),
+        proxy_address: jQuery('input[name="proxy_address"]').val(),
+        proxy_port: jQuery('input[name="proxy_port"]').val(),
+        proxy_username: jQuery('input[name="proxy_username"]').val(),
+        proxy_password: jQuery('input[name="proxy_password"]').val()
       }),
       success: function (data) {
         if (data) {
