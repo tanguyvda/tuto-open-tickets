@@ -240,7 +240,7 @@ protected function _getConfigContainer1Extra() {
   // this array is here to link a label with the html code that we've wrote above
   $array_form = array(
     'address' => array(
-      'label' => _('Addres'),
+      'label' => _('Address'),
       'html' => $address_html
     ),
     'api_path' => array(
@@ -273,11 +273,11 @@ protected function _getConfigContainer1Extra() {
 Now that everything seems to be set up, we need to create our template file, the so called conf_container1extra.ihtml
 - Create a template directory
 
-`mkdir /usr/share/centreon/www/modules/centreon-open-tickets/providers/templates`
+`mkdir /usr/share/centreon/www/modules/centreon-open-tickets/TutoGlpi/providers/templates`
 
 - Create your template file
 
-`touch /usr/share/centreon/www/modules/centreon-open-tickets/providers/templates/conf_container1extra.ihtml`
+`touch /usr/share/centreon/www/modules/centreon-open-tickets/TutoGlpi/providers/templates/conf_container1extra.ihtml`
 
 write the following html code in your template file
 ```html
